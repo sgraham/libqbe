@@ -38,6 +38,7 @@ FILES = [
     "rv64/emit.c",
     "rv64/isel.c",
     "rv64/targ.c",
+    "../libqbe_impl.c",
 ]
 
 
@@ -169,13 +170,22 @@ def get_config():
 def main():
     QBE_ROOT = os.path.join(os.getcwd(), "qbe")
     if not os.path.exists(QBE_ROOT):
-        subprocess.call(['git', 'clone', 'git://c9x.me/qbe.git'])
+        subprocess.call(["git", "clone", "git://c9x.me/qbe.git"])
 
     with open(os.path.join(QBE_ROOT, "ops.h"), "r") as f:
         ops_h_contents = f.read()
-    with open("qbe_amalg.c", "w", newline="\n") as amalg:
+    with open(os.path.join(QBE_ROOT, "LICENSE"), "r") as f:
+        license_contents = f.read()
+    with open("libqbe.c", "w", newline="\n") as amalg:
+        amalg.write("/*\n\nQBE LICENSE:\n\n")
+        amalg.write(license_contents)
+        amalg.write("\n\n")
+        amalg.write(
+            "Other QQ code by Scott Graham <scott.qq@h4ck3r.net> under the same license.\n\n"
+        )
+        amalg.write("*/\n\n")
         amalg.write(get_config())
-        amalg.write('\n')
+        amalg.write("\n")
         amalg.write('#pragma GCC diagnostic ignored "-Wunused-function"\n')
         amalg.write('#pragma GCC diagnostic ignored "-Wunused-but-set-variable"\n')
 

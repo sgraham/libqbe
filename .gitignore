@@ -1,3 +1,4 @@
 qbe/
-qbe_amalg.c
+libqbe.c
 *.o
+tags
