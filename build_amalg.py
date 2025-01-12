@@ -160,7 +160,7 @@ def rv64_reg_rename(contents):
 
 
 def get_config():
-    # TODO, match Makefile
+    # TODO, match Makefile, and I think put at runtime instead
     if platform.machine().lower() == "arm64":
         return "#define Deftgt T_arm64_apple"
     else:
@@ -179,15 +179,13 @@ def main():
     with open("libqbe.c", "w", newline="\n") as amalg:
         amalg.write("/*\n\nQBE LICENSE:\n\n")
         amalg.write(license_contents)
-        amalg.write("\n\n")
+        amalg.write("\n---\n\n")
         amalg.write(
-            "Other QQ code by Scott Graham <scott.qq@h4ck3r.net> under the same license.\n\n"
+            "Other libqbe code under the same license by Scott Graham.\n\n"
         )
         amalg.write("*/\n\n")
         amalg.write(get_config())
         amalg.write("\n")
-        amalg.write('#pragma GCC diagnostic ignored "-Wunused-function"\n')
-        amalg.write('#pragma GCC diagnostic ignored "-Wunused-but-set-variable"\n')
 
         for file in FILES:
             with open(os.path.join(QBE_ROOT, file), "rb") as f:
@@ -230,9 +228,9 @@ def main():
                 if line.strip().startswith(
                     '#include "ops.h"'
                 ) or line.strip().startswith('#include "../ops.h"'):
-                    amalg.write("/* --- including ops.h */\n")
+                    amalg.write("/* " + 60*"-" + "including ops.h */\n")
                     amalg.write(ops_h_contents)
-                    amalg.write("/* --- end of ops.h */\n")
+                    amalg.write("/* " + 60*"-" + "end of ops.h */\n")
                     continue
                 amalg.write(line)
                 amalg.write("\n")

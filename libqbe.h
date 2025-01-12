@@ -3,109 +3,88 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef struct QbeLinkage { uint32_t u; } QbeLinkage;
-typedef struct QbeFunc { uint32_t u; } QbeFunc;
-typedef struct QbeData { uint32_t u; } QbeData;
-typedef struct QbeType { uint32_t u; } QbeType;
-typedef struct QbeBlock { uint32_t u; } QbeBlock;
-typedef struct QbePhi { uint32_t u; } QbePhi;
-typedef struct QbeInstr { uint32_t u; } QbeInstr;
-typedef struct QbeJump { uint32_t u; } QbeJump;
-typedef struct QbeRef { uint32_t u; } QbeRef;
+#define LQ_OPAQUE_STRUCT_DEF(x) \
+  typedef struct x {            \
+    uint32_t u;                 \
+  } x
 
-QbeType qbe_builtin_type_byte();
-QbeType qbe_builtin_type_half();
-QbeType qbe_builtin_type_word();
-QbeType qbe_builtin_type_long();
-QbeType qbe_builtin_type_float();
-QbeType qbe_builtin_type_double();
+LQ_OPAQUE_STRUCT_DEF(LqLinkage);
+LQ_OPAQUE_STRUCT_DEF(LqType);
+LQ_OPAQUE_STRUCT_DEF(LqBlock);
+LQ_OPAQUE_STRUCT_DEF(LqRef);
 
-QbeData qbe_begin_data(const char* name, QbeLinkage linkage);
-void qbe_data_byte(QbeData data, uint8_t val);
-void qbe_data_half(QbeData data, uint16_t val);
-void qbe_data_word(QbeData data, uint32_t val);
-void qbe_data_long(QbeData data, uint64_t val);
-void qbe_data_zero(QbeData data, int count);
-// TODO: string/float/double helpers
-void qbe_end_data(QbeData data);
+#undef LQ_OPAQUE_STRUCT_DEF
 
-QbeFunc qbe_begin_func(const char* name, QbeLinkage linkage, QbeType return_type);
+typedef enum LqTarget {
+  LQ_TARGET_DEFAULT,        //
+  LQ_TARGET_AMD64_APPLE,    //
+  LQ_TARGET_AMD64_SYSV,     //
+  LQ_TARGET_AMD64_WINDOWS,  //
+  LQ_TARGET_ARM64,          //
+  LQ_TARGET_ARM64_APPLE,    //
+} LqTarget;
 
-void qbe_func_begin_params(QbeFunc func);
-void qbe_func_begin_params_env(QbeFunc func);
-void qbe_func_param_add(QbeType type, const char* name);
-void qbe_func_end_params(QbeFunc func);
-void qbe_func_end_params_variadic(QbeFunc func);
+void lq_init(LqTarget target, const char* debug_flags);
 
-QbeBlock qbe_begin_block(QbeFunc func);
-void qbe_block_add_phi(QbePhi phi);
-void qbe_block_add_instr(QbeInstr instr);
-void qbe_block_add_jump(QbeJump inst);
-void qbe_end_block(QbeBlock block);
+// These values must match internal Kw, Kl, etc.
+typedef enum LqTypeKind {
+  LQ_TYPE_W = 0,
+  LQ_TYPE_L = 1,
+  LQ_TYPE_S = 2,
+  LQ_TYPE_D = 3,
+  LQ_TYPE_SB = 4,
+  LQ_TYPE_UB = 5,
+  LQ_TYPE_SH = 6,
+  LQ_TYPE_UH = 7,
+  LQ_TYPE_C = 8,              // User-defined class
+  LQ_TYPE_0 = 9,              // void
+  LQ_TYPE_E = -2,             // error
+  LQ_TYPE_M = LQ_TYPEKIND_L,  // memory
+} LqTypeKind;
 
-void qbe_end_func(QbeFunc func);
+LqType lq_type_byte(void);
+LqType lq_type_half(void);
+LqType lq_type_word(void);
+LqType lq_type_long(void);
+LqType lq_type_float(void);
+LqType lq_type_double(void);
+
+void lq_start_data(LqLinkage linkage, const char* name);
+void lq_data_byte(uint8_t val);
+void lq_data_half(uint16_t val);
+void lq_data_word(uint32_t val);
+void lq_data_long(uint64_t val);
+void lq_data_string(const char* str);
+void lq_data_float(float f);
+void lq_data_double(double d);
+LqRef lq_end_data(void);
+
+LqRef lq_extern(const char* name);
+
+void lq_start_func(LqLinkage linkage, LqType return_type, const char* name);
+LqRef lq_func_param_named(LqType type, const char* name);
+#define lq_func_param(type) lq_func_param_named(type, NULL)
+
+LqBlock lq_start_block(void);
+
+LqRef lq_i_call(LqRef func, int num_args, ...);
+LqRef lq_i_call_varargs(LqRef func, int num_args, ...);
+LqRef lq_i_ret(LqRef ref);
+LqRef lq_i_emit(LqInst instr, LqRef lhs, LqRef rhs);
+LqRef lq_i_jump(LqBlock target);
+LqRef lq_i_alloc4(LqRef byte_count);
+LqRef lq_i_alloc8(LqRef byte_count);
+LqRef lq_i_alloc16(LqRef byte_count);
 
 // TODO: phi
 
-void qbe_instr_store_d(QbeBlock block, QbeRef val, QbeRef into);
-void qbe_instr_store_s(QbeBlock block, QbeRef val, QbeRef into);
-void qbe_instr_store_l(QbeBlock block, QbeRef val, QbeRef into);
-void qbe_instr_store_w(QbeBlock block, QbeRef val, QbeRef into);
-void qbe_instr_store_h(QbeBlock block, QbeRef val, QbeRef into);
-void qbe_instr_store_b(QbeBlock block, QbeRef val, QbeRef into);
-
-QbeRef qbe_instr_load_d(QbeBlock block, QbeRef from);
-QbeRef qbe_instr_load_s(QbeBlock block, QbeRef from);
-QbeRef qbe_instr_load_l(QbeBlock block, QbeRef from);
-QbeRef qbe_instr_load_sw(QbeBlock block, QbeRef from);
-QbeRef qbe_instr_load_uw(QbeBlock block, QbeRef from);
-QbeRef qbe_instr_load_sh(QbeBlock block, QbeRef from);
-QbeRef qbe_instr_load_uh(QbeBlock block, QbeRef from);
-QbeRef qbe_instr_load_sb(QbeBlock block, QbeRef from);
-QbeRef qbe_instr_load_ub(QbeBlock block, QbeRef from);
-
-// TODO: blit
-
-QbeRef qbe_instr_alloc_align4(QbeRef byte_count);
-QbeRef qbe_instr_alloc_align8(QbeRef byte_count);
-QbeRef qbe_instr_alloc_align16(QbeRef byte_count);
-
-typedef enum QbeIntCmp {
-  QBE_IC_INVALID,
-  QBE_IC_EQ,
-  QBE_IC_NE,
-  QBE_IC_SLE,
-  QBE_IC_SLT,
-  QBE_IC_SGE,
-  QBE_IC_SGT,
-  QBE_IC_ULE,
-  QBE_IC_ULT,
-  QBE_IC_UGE,
-  QBE_IC_UGT,
-  QBE_IC_COUNT
-} QbeIntCmp;
-
-typedef enum QbeFloatCmp {
-  QBE_FC_INVALID,
-  QBE_FC_EQ,
-  QBE_FC_NE,
-  QBE_FC_LE,
-  QBE_FC_LT,
-  QBE_FC_GE,
-  QBE_FC_GT,
-  QBE_FC_O,
-  QBE_FC_UO,
-  QBE_FC_COUNT
-} QbeFloatCmp;
-
-QbeRef qbe_instr_compare_int(QbeIntCmp cmp, QbeRef lhs, QbeRef rhs);
-QbeRef qbe_instr_compare_float(QbeFloatCmp cmp, QbeRef lhs, QbeRef rhs);
+LqRef lq_end_func(LqFunc func);
 
 
-QbeType qbe_begin_type_struct(const char* name, int align /*=0*/);
-QbeType qbe_begin_type_union(const char* name, int align);
-void qbe_type_add_field(QbeType type, QbeType field);
-void qbe_type_add_field_with_count(QbeType type, QbeType field, uint32_t count);
-void qbe_end_type(QbeType type);
+LqType lq_begin_type_struct(const char* name, int align /*=0*/);
+LqType lq_begin_type_union(const char* name, int align);
+void lq_type_add_field(LqType type, LqType field);
+void lq_type_add_field_with_count(LqType type, LqType field, uint32_t count);
+void lq_end_type(LqType type);
 
-QbeType qbe_make_type_opaque(const char* name, int align, int size);
+LqType lq_make_type_opaque(const char* name, int align, int size);
