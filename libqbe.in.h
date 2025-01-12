@@ -1,7 +1,9 @@
-#pragma once
+#ifndef LIBQBE_H_INCLUDED_
+#define LIBQBE_H_INCLUDED_
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #define LQ_OPAQUE_STRUCT_DEF(x) \
   typedef struct x {            \
@@ -22,11 +24,13 @@ typedef enum LqTarget {
   LQ_TARGET_AMD64_WINDOWS,  //
   LQ_TARGET_ARM64,          //
   LQ_TARGET_ARM64_APPLE,    //
+  LQ_TARGET_RV64,           //
 } LqTarget;
 
-void lq_init_target_debug(LqTarget target, const char* debug_flags);
-#define lq_init() lq_init_target_debug(LQ_TARGET_DEFAULT, "")
-#define lq_init_target(target) lq_init_target_debug(target, "")
+void lq_init(LqTarget target /*=LQ_TARGET_DEFAULT*/,
+             FILE* output /*=stdout*/,
+             const char* debug_flags /*=""*/);
+void lq_shutdown(void);
 
 LqLinkage lq_linkage_export(void);
 LqLinkage lq_linkage_default(void);
@@ -69,25 +73,26 @@ LqRef lq_data_end(void);
 LqRef lq_extern(const char* name);
 
 void lq_func_start(LqLinkage linkage, LqType return_type, const char* name);
-LqRef lq_func_param_named(LqType type, const char* name);
+
 #define lq_func_param(type) lq_func_param_named(type, NULL)
+LqRef lq_func_param_named(LqType type, const char* name);
 
-LqBlock lq_start_block(void);
+LqBlock lq_block_declare_named(const char* name);
+#define lq_block_declare() lq_block_declare_named("")
 
-%%%INSTRUCTIONS%%%
+void lq_block_start_previously_declared(LqBlock block);
 
-LqRef lq_i_call(LqRef func, int num_args, ...);
-LqRef lq_i_call_varargs(LqRef func, int num_args, ...);
-LqRef lq_i_ret(LqRef ref);
-LqRef lq_i_emit(LqInst instr, LqRef lhs, LqRef rhs);
-LqRef lq_i_jump(LqBlock target);
-LqRef lq_i_alloc4(LqRef byte_count);
-LqRef lq_i_alloc8(LqRef byte_count);
-LqRef lq_i_alloc16(LqRef byte_count);
+#define lq_block_start() lq_block_start_named("")
+LqBlock lq_block_start_named(const char* name);
 
-// TODO: phi
+%%%INSTRUCTION_DECLARATIONS%%%
 
-LqRef lq_func_end(LqFunc func);
+void lq_i_ret_void(void);
+void lq_i_ret(LqRef val);
+void lq_i_jmp(LqBlock block);
+void lq_i_jnz(LqRef cond, LqBlock if_true, LqBlock if_false);
+
+LqRef lq_func_end(void);
 
 
 LqType lq_type_start_struct(const char* name, int align /*=0*/);
@@ -97,3 +102,5 @@ void lq_type_add_field_with_count(LqType type, LqType field, uint32_t count);
 LqType lq_type_end(void);
 
 LqType lq_make_type_opaque(const char* name, int align, int size);
+
+#endif  /* LIBQBE_H_INCLUDED_ */

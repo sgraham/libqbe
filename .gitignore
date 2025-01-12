@@ -4,3 +4,8 @@ libqbe.c
 *.o
 tags
 x.ssa
+m.bat
+hello.exe
+hello.pdb
+hello.ilk
+.vs/

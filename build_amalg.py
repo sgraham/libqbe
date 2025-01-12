@@ -5,7 +5,7 @@ import string
 import subprocess
 import sys
 
-FILES = [
+LIBQBE_C_FILES = [
     "all.h",
     "amd64/all.h",
     "arm64/all.h",
@@ -159,6 +159,33 @@ def rv64_reg_rename(contents):
     return contents
 
 
+def make_instr_prototypes(ops_h_contents):
+    external_only = []
+    for x in ops_h_contents.splitlines():
+        if "INTERNAL OPERATIONS" in x:
+            break
+        if x.startswith("O("):
+            external_only.append(x)
+
+    ret = ""
+    for op in external_only:
+        assert op.startswith("O(")
+        toks = re.split("[ \t,T()]+", op[2:])
+        op = toks[0]
+        lhs = "".join(toks[1:5])
+        rhs = "".join(toks[5:9])
+        if rhs == "xxxx":
+            ret += "void lq_i_%s(LqRef lhs /*%s*/);\n" % (op, "".join(lhs))
+        else:
+            ret += "void lq_i_%s(LqRef lhs /*%s*/, LqRef rhs /*%s*/);\n" % (
+                op,
+                "".join(lhs),
+                "".join(rhs),
+            )
+
+    return ret
+
+
 def get_config():
     # TODO, match Makefile, and I think put at runtime instead
     if platform.machine().lower() == "arm64":
@@ -180,14 +207,12 @@ def main():
         amalg.write("/*\n\nQBE LICENSE:\n\n")
         amalg.write(license_contents)
         amalg.write("\n---\n\n")
-        amalg.write(
-            "Other libqbe code under the same license by Scott Graham.\n\n"
-        )
+        amalg.write("Other libqbe code under the same license by Scott Graham.\n\n")
         amalg.write("*/\n\n")
         amalg.write(get_config())
         amalg.write("\n")
 
-        for file in FILES:
+        for file in LIBQBE_C_FILES:
             with open(os.path.join(QBE_ROOT, file), "rb") as f:
                 contents = f.read().decode("utf-8")
 
@@ -228,9 +253,9 @@ def main():
                 if line.strip().startswith(
                     '#include "ops.h"'
                 ) or line.strip().startswith('#include "../ops.h"'):
-                    amalg.write("/* " + 60*"-" + "including ops.h */\n")
+                    amalg.write("/* " + 60 * "-" + "including ops.h */\n")
                     amalg.write(ops_h_contents)
-                    amalg.write("/* " + 60*"-" + "end of ops.h */\n")
+                    amalg.write("/* " + 60 * "-" + "end of ops.h */\n")
                     continue
                 amalg.write(line)
                 amalg.write("\n")
@@ -239,8 +264,9 @@ def main():
     with open("libqbe.in.h", "r", newline="\n") as header_in:
         header_contents = header_in.read()
 
-    # TODO: replace with ops.h munging
-    header_contents = header_contents.replace('%%%INSTRUCTIONS%%%\n', '')
+    header_contents = header_contents.replace(
+        "%%%INSTRUCTION_DECLARATIONS%%%\n", make_instr_prototypes(ops_h_contents)
+    )
 
     with open("libqbe.h", "w", newline="\n") as header_out:
         header_out.write(header_contents)

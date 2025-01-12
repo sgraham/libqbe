@@ -1,23 +1,242 @@
 #include "libqbe.h"
 
+static PState _ps;
+static Blk _block_arena[1024];  // TODO: lq_init arg (this is per func)
+static int _num_blocks;
+
 void lq_data_string(const char* str) {
+#if 0
   for (const char* p = str; *p; ++p) {
     lq_data_byte(*p);
   }
+#endif
 }
 
 void lq_data_float(float f) {
+#if 0
   lq_data_word(*(uint32_t*)&f);
+#endif
 }
 
 void lq_data_double(double d) {
+#if 0
   lq_data_long(*(uint64_t*)&d);
+#endif
 }
 
-LqRef lq_func_param(LqType type) {
-  return lq_func_param_named(type, NULL);
+typedef enum LqInitStatus {
+  LQIS_UNINITIALIZED = 0,
+  LQIS_INITIALIZED_EMIT_FIN = 1,
+  LQIS_INITIALIZED_NO_FIN = 1,
+} LqInitStatus;
+static LqInitStatus lq_initialized;
+
+static uint lq_ntyp;
+
+void lq_init(LqTarget target, FILE* output, const char* debug_names) {
+  assert(lq_initialized == LQIS_UNINITIALIZED);
+
+  switch (target) {
+    case LQ_TARGET_AMD64_APPLE:
+      T = T_amd64_apple;
+      break;
+    case LQ_TARGET_AMD64_SYSV:
+      T = T_amd64_sysv;
+      break;
+    case LQ_TARGET_AMD64_WINDOWS:
+      abort();
+      break;
+    case LQ_TARGET_ARM64:
+      T = T_arm64;
+      break;
+    case LQ_TARGET_ARM64_APPLE:
+      T = T_arm64_apple;
+      break;
+    case LQ_TARGET_RV64:
+      T = T_rv64;
+      break;
+    default: {
+      // TODO: various preproc to determine runtime default, rather than build-time
+      T = Deftgt;
+    }
+  }
+
+  outf = output;
+
+  for (const char* d = debug_names; *d; ++d) {
+    debug[(int)*d] = 1;
+  }
+
+  lq_ntyp = 0;
+  typ = vnew(0, sizeof(typ[0]), PHeap);
+
+  lq_initialized = debug_names[0] == 0 ? LQIS_INITIALIZED_EMIT_FIN : LQIS_INITIALIZED_NO_FIN;
 }
 
+void lq_shutdown(void) {
+  assert(lq_initialized != LQIS_UNINITIALIZED);
+  if (lq_initialized == LQIS_INITIALIZED_EMIT_FIN) {
+    T.emitfin(outf);
+  }
+  // TODO: pool flushes, etc
+  lq_initialized = LQIS_UNINITIALIZED;
+}
+
+LqRef lq_const_int(int64_t i) {
+  return (LqRef){0};
+}
+
+static Lnk _linkage_to_internal_lnk(LqLinkage linkage) {
+  return (Lnk){0};  // TODO
+}
+
+void lq_func_start(LqLinkage linkage, LqType return_type, const char* name) {
+  Lnk lnk = _linkage_to_internal_lnk(linkage);
+  lnk.align = 16;
+
+	curb = 0;
+	_num_blocks = 0;
+	curi = insb;
+	curf = alloc(sizeof *curf);
+	curf->ntmp = 0;
+	curf->ncon = 2;
+	curf->tmp = vnew(curf->ntmp, sizeof curf->tmp[0], PFn);
+	curf->con = vnew(curf->ncon, sizeof curf->con[0], PFn);
+	for (int i=0; i<Tmp0; ++i)
+		if (T.fpr0 <= i && i < T.fpr0 + T.nfpr)
+			newtmp(0, Kd, curf);
+		else
+			newtmp(0, Kl, curf);
+	curf->con[0].type = CBits;
+	curf->con[0].bits.i = 0xdeaddead;  /* UNDEF */
+	curf->con[1].type = CBits;
+	curf->lnk = lnk;
+	curf->leaf = 1;
+	blink = &curf->start;
+	curf->retty = Kx;
+  rcls = return_type.u;
+  assert(return_type.u != LQ_TYPE_C);
+  if (return_type.u > LQ_TYPE_0) {
+    curf->retty = return_type.u;
+    rcls = LQ_TYPE_C;
+  }
+  strncpy(curf->name, name, NString-1);
+  _ps = PLbl;
+
+  lq_block_start();
+}
+
+LqLinkage lq_linkage_export(void) {
+  return (LqLinkage){0};  // TODO
+}
+
+void lq_i_ret_void(void) {
+}
+
+Ref _ref_to_internal_ref(LqRef ref) {
+  return R;
+#if 0
+	Con c;
+
+	memset(&c, 0, sizeof c);
+	switch (next()) {
+	default:
+		return R;
+	case Ttmp:
+		return tmpref(tokval.str);
+	case Tint:
+		c.type = CBits;
+		c.bits.i = tokval.num;
+		break;
+	case Tflts:
+		c.type = CBits;
+		c.bits.s = tokval.flts;
+		c.flt = 1;
+		break;
+	case Tfltd:
+		c.type = CBits;
+		c.bits.d = tokval.fltd;
+		c.flt = 2;
+		break;
+	case Tthread:
+		c.sym.type = SThr;
+		expect(Tglo);
+		/* fall through */
+	case Tglo:
+		c.type = CAddr;
+		c.sym.id = intern(tokval.str);
+		break;
+	}
+	return newcon(&c, curf);
+#endif
+}
+
+void lq_i_ret(LqRef val) {
+  curb->jmp.type = Jretw + rcls;
+  if (val.u == 0)
+    curb->jmp.type = Jret0;
+  else if (rcls != K0) {
+    Ref r = _ref_to_internal_ref(val);
+    if (req(r, R))
+      err("invalid return value");
+    curb->jmp.arg = r;
+  }
+  qbe_parse_closeblk();
+  _ps = PLbl;
+}
+
+LqRef lq_func_end(void) {
+	if (!curb)
+		err("empty function");
+	if (curb->jmp.type == Jxxx)
+		err("last block misses jump");
+	curf->mem = vnew(0, sizeof curf->mem[0], PFn);
+	curf->nmem = 0;
+	curf->nblk = _num_blocks;
+	curf->rpo = 0;
+	for (Blk* b=curf->start; b; b=b->link) {
+    assert(b->dlink == 0);
+  }
+	memset(tmph, 0, tmphcap * sizeof tmph[0]);  // ??
+	qbe_parse_typecheck(curf);
+
+  // TODO:
+  return (LqRef){0};
+	//return curf;
+}
+
+LqBlock lq_block_declare_named(const char* name) {
+  LqBlock ret = {_num_blocks++};
+  Blk* blk = &_block_arena[ret.u];
+  memset(blk, 0, sizeof(Blk));
+  blk->id = ret.u;
+  strcpy(blk->name, name);
+  return ret;
+}
+
+void lq_block_start_previously_declared(LqBlock block) {
+  Blk* b = &_block_arena[block.u];
+  if (curb && curb->jmp.type == Jxxx) {
+    qbe_parse_closeblk();
+    curb->jmp.type = Jjmp;
+    curb->s1 = b;
+  }
+  if (b->jmp.type != Jxxx)
+    err("multiple definitions of block @%s", b->name);
+  *blink = b;
+  curb = b;
+  plink = &curb->phi;
+  _ps = PPhi;
+}
+
+LqBlock lq_block_start_named(const char* name) {
+  LqBlock new = lq_block_declare_named(name);
+  lq_block_start_previously_declared(new);
+  return new;
+}
+
+
+#if 0
 typedef struct LqLinkageData {
   bool export;
   bool tls;
@@ -104,3 +323,4 @@ void lq_end_type(LqType type) {
 LqType lq_make_type_opaque(const char *name, int align, int size) {
   abort();
 }
+#endif
