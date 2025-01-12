@@ -18,24 +18,28 @@ data $fmt = { b "One and one make %d!\n", b 0 }
 int main(void) {
   lq_init(LQ_TARGET_DEFAULT, "");
 
-  lq_start_func(lq_linkage_default(), lq_type_word(), "add");
+#if 0
+  lq_func_start(lq_linkage_default(), lq_type_word(), "add");
   LqRef a = lq_func_param(lq_type_word());
   Lqref b = lq_func_param(lq_type_word());
-  lq_start_block();
-  LqRef c = lq_emit(LQ_TYPE_WORD, LQ_ADD, a, b);  // TODO: w context
-  lq_emit(LQ_RET, c);
+  LqRef c = lq_i_add(LQ_TYPE_W, a, b);
+  lq_i_ret(c);
   LqRef add_func = lq_end_func();
 
-  lq_start_data(lq_linkage_default(), "fmt");
+  lq_data_start(lq_linkage_default(), "fmt");
   lq_data_string("One and one make %d!\n");
   lq_data_byte(0);
-  LqRef fmt = lq_end_data();
+  LqRef fmt = lq_data_end();
 
-  lq_start_func(lq_linkage_export(), lq_type_word(), "main");
-  lq_start_block();
-  LqRef r = lq_i_call(add_func, lq_const_word(1), lq_const_word(1));  // TODO: w context
+  lq_func_start(lq_linkage_export(), lq_type_word(), "main");
+  LqRef r = lq_i_call(LQ_TYPE_W, add_func, lq_const_word(1), lq_const_word(1));
   LqRef printf_func = lq_extern("printf");
   lq_i_call_varargs(printf, r);
-  lq_i_emit(LQ_RET, lq_const_word(0));
-  LqRef main = lq_end_func();
+  lq_i_ret(lq_const_word(0));
+  LqRef main = lq_func_end();
+#endif
+
+  lq_func_start(lq_linkage_export(), lq_type_word, "main");
+  lq_i_ret(lq_consti(0));
+  lq_func_end();
 }

@@ -1,4 +1,6 @@
 qbe/
+libqbe.h
 libqbe.c
 *.o
 tags
+x.ssa

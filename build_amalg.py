@@ -236,6 +236,15 @@ def main():
                 amalg.write("\n")
             amalg.write("/*** END FILE: %s ***/\n" % file)
 
+    with open("libqbe.in.h", "r", newline="\n") as header_in:
+        header_contents = header_in.read()
+
+    # TODO: replace with ops.h munging
+    header_contents = header_contents.replace('%%%INSTRUCTIONS%%%\n', '')
+
+    with open("libqbe.h", "w", newline="\n") as header_out:
+        header_out.write(header_contents)
+
 
 if __name__ == "__main__":
     main()
