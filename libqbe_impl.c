@@ -1,6 +1,13 @@
 static PState _ps;
-static Blk _block_arena[1024];  // TODO: lq_init arg (this is per func)
+
+// Blk lifetimes are per-func
+// This array is ~2M, perhaps lq_init arg to size this?
+static Blk _block_arena[8<<10];
 static int _num_blocks;
+
+// Lnk lifetimes are lq_init() scoped
+static Lnk _linkage_arena[1<<10];
+static int _num_linkages;
 
 typedef enum LqInitStatus {
   LQIS_UNINITIALIZED = 0,
@@ -12,18 +19,48 @@ static LqInitStatus lq_initialized;
 static uint lq_ntyp;
 
 static void err(char* s, ...) {
-	va_list args;
-	va_start(args, s);
-	fprintf(stderr, "libqbe: ");
-	vfprintf(stderr, s, args);
-	fprintf(stderr, "\n");
-	va_end(args);
+  va_list args;
+  va_start(args, s);
+  fprintf(stderr, "libqbe: ");
+  vfprintf(stderr, s, args);
+  fprintf(stderr, "\n");
+  va_end(args);
   // TODO: setjmp/longjmp w/ clean up
-	exit(1);
+  exit(1);
+}
+
+LqLinkage lq_linkage_create(int alignment,
+                            bool exported,
+                            bool tls,
+                            bool common,
+                            const char* section_name,
+                            const char* section_flags) {
+  assert(_num_linkages < (int)(sizeof(_linkage_arena) / sizeof(_linkage_arena[0])));
+  LqLinkage ret = {_num_linkages++};
+  _linkage_arena[ret.u] = (Lnk){
+      .export = exported,
+      .thread = tls,
+      .common = common,
+      .align = alignment,  // TODO: i think this is wrong
+      .sec = (char*)section_name,
+      .secf = (char*)section_flags,
+  };
+  return ret;
+}
+
+static Lnk* _linkage_to_internal_lnk(LqLinkage linkage) {
+  return &_linkage_arena[linkage.u];
 }
 
 void lq_init(LqTarget target, FILE* output, const char* debug_names) {
   assert(lq_initialized == LQIS_UNINITIALIZED);
+
+  _num_linkages = 0;
+  // These have to match the header for lq_linkage_default/export.
+  LqLinkage def = lq_linkage_create(8, false, false, false, NULL, NULL);
+  assert(def.u == 0); (void)def;
+  LqLinkage exp = lq_linkage_create(8, false, false, false, NULL, NULL);
+  assert(exp.u == 1); (void)exp;
 
   (void)qbe_parse_tmpref; // TODO
   (void)qbe_main_dbgfile;
@@ -97,14 +134,9 @@ void lq_shutdown(void) {
   lq_initialized = LQIS_UNINITIALIZED;
 }
 
-static Lnk _linkage_to_internal_lnk(LqLinkage linkage) {
-  (void)linkage;
-  return (Lnk){0};  // TODO
-}
-
 void lq_func_start(LqLinkage linkage, LqType return_type, const char* name) {
-  Lnk lnk = _linkage_to_internal_lnk(linkage);
-  lnk.align = 16;
+  Lnk* lnk = _linkage_to_internal_lnk(linkage);
+  lnk->align = 16;
 
   curb = 0;
   _num_blocks = 0;
@@ -124,7 +156,7 @@ void lq_func_start(LqLinkage linkage, LqType return_type, const char* name) {
   curf->con[0].type = CBits;
   curf->con[0].bits.i = 0xdeaddead; /* UNDEF */
   curf->con[1].type = CBits;
-  curf->lnk = lnk;
+  curf->lnk = *lnk;
   curf->leaf = 1;
   blink = &curf->start;
   curf->retty = Kx;
@@ -138,14 +170,6 @@ void lq_func_start(LqLinkage linkage, LqType return_type, const char* name) {
   _ps = PLbl;
 
   lq_block_start();
-}
-
-LqLinkage lq_linkage_default(void) {
-  return (LqLinkage){0};  // TODO
-}
-
-LqLinkage lq_linkage_export(void) {
-  return (LqLinkage){0};  // TODO
 }
 
 MAKESURE(ref_sizes_match, sizeof(LqRef) == sizeof(Ref));
@@ -248,6 +272,7 @@ LqRef lq_func_end(void) {
 }
 
 LqBlock lq_block_declare_named(const char* name) {
+  assert(_num_blocks < (int)(sizeof(_block_arena) / sizeof(_block_arena[0])));
   LqBlock ret = {_num_blocks++};
   Blk* blk = &_block_arena[ret.u];
   memset(blk, 0, sizeof(Blk));

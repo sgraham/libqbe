@@ -49,7 +49,7 @@ you can build `libqbe.c` correctly.
 int main(void) {
   lq_init(LQ_TARGET_DEFAULT, stdout, "");
 
-  lq_func_start(lq_linkage_export(), lq_type_word, "main");
+  lq_func_start(lq_linkage_export, lq_type_word, "main");
   lq_i_ret(lq_const_int(0));
   lq_func_end();
 

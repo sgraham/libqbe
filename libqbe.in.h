@@ -51,8 +51,14 @@ void lq_init(LqTarget target /*=LQ_TARGET_DEFAULT*/,
              const char* debug_flags /*=""*/);
 void lq_shutdown(void);
 
-LqLinkage lq_linkage_export(void);
-LqLinkage lq_linkage_default(void);
+LqLinkage lq_linkage_create(int alignment,
+                            bool exported,
+                            bool tls,
+                            bool common,
+                            const char* section_name,
+                            const char* section_flags);
+#define lq_linkage_default ((LqLinkage){0})
+#define lq_linkage_export ((LqLinkage){1})
 
 // These values must match internal Kw, Kl, etc.
 typedef enum LqTypeKind {
