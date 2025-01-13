@@ -430,23 +430,30 @@ def main():
                 # declaration. We can't easily restructure to get the ops,
                 # regcounts, etc. before the decl, so just hardcode and rely on
                 # the MAKESUREs to make sure they match.
-                contents = contents.replace('extern Amd64Op amd64_op[];',
-                                            'static Amd64Op amd64_op[138];')
-                contents = contents.replace('extern int amd64_sysv_rsave[];',
-                                            'static int amd64_sysv_rsave[25];')
-                contents = contents.replace('extern int amd64_sysv_rclob[];',
-                                            'static int amd64_sysv_rclob[6];')
-                contents = contents.replace('extern int arm64_rsave[];',
-                                            'static int arm64_rsave[44];')
-                contents = contents.replace('extern int arm64_rclob[];',
-                                            'static int arm64_rclob[19];')
-                contents = contents.replace('extern Rv64Op rv64_op[];',
-                                            'static Rv64Op rv64_op[138];')
-                contents = contents.replace('extern int rv64_rsave[];',
-                                            'static int rv64_rsave[34];')
-                contents = contents.replace('extern int rv64_rclob[];',
-                                            'static int rv64_rclob[24];')
-
+                contents = contents.replace(
+                    "extern Amd64Op amd64_op[];", "static Amd64Op amd64_op[138];"
+                )
+                contents = contents.replace(
+                    "extern int amd64_sysv_rsave[];", "static int amd64_sysv_rsave[25];"
+                )
+                contents = contents.replace(
+                    "extern int amd64_sysv_rclob[];", "static int amd64_sysv_rclob[6];"
+                )
+                contents = contents.replace(
+                    "extern int arm64_rsave[];", "static int arm64_rsave[44];"
+                )
+                contents = contents.replace(
+                    "extern int arm64_rclob[];", "static int arm64_rclob[19];"
+                )
+                contents = contents.replace(
+                    "extern Rv64Op rv64_op[];", "static Rv64Op rv64_op[138];"
+                )
+                contents = contents.replace(
+                    "extern int rv64_rsave[];", "static int rv64_rsave[34];"
+                )
+                contents = contents.replace(
+                    "extern int rv64_rclob[];", "static int rv64_rclob[24];"
+                )
 
             if file.endswith("/abi.c"):
                 contents = abi_renames(ns, contents)
@@ -490,6 +497,7 @@ def main():
                 contents = remove_function(
                     contents, "static int", "qbe_parse_parserefl"
                 )
+                contents = remove_function(contents, "void", "err")
                 contents = remove_function(contents, "static int", "qbe_parse_findtyp")
                 contents = remove_function(contents, "static int", "qbe_parse_parsecls")
                 contents = remove_function(contents, "static Ref", "qbe_parse_parseref")
@@ -501,6 +509,8 @@ def main():
                 contents = remove_data(contents, "static Blk *blkh")
                 contents = remove_data(contents, "static int thead;")
                 contents = remove_data(contents, "static uchar lexh")
+                contents = remove_data(contents, "static char *inpath;")
+                contents = remove_data(contents, "static int lnum;")
                 contents = remove_lines_range(contents, "static struct {", "} tokval;")
                 contents = remove_lines_range(contents, "static char *kwmap", "};")
 
@@ -552,31 +562,70 @@ def main():
 
     if sys.platform == "win32":
         subprocess.check_call(
-            ["cl", "/D_CRT_SECURE_NO_WARNINGS", "/nologo", "/W4", "/WX", "/c", "libqbe.c"]
+            [
+                "cl",
+                "/D_CRT_SECURE_NO_WARNINGS",
+                "/nologo",
+                "/W4",
+                "/WX",
+                "/c",
+                "libqbe.c",
+            ]
         )
         subprocess.check_call(
-            ["cl", "/O2", "/D_CRT_SECURE_NO_WARNINGS", "/nologo", "/W4", "/WX", "/c", "libqbe.c"]
+            [
+                "cl",
+                "/O2",
+                "/D_CRT_SECURE_NO_WARNINGS",
+                "/nologo",
+                "/W4",
+                "/WX",
+                "/c",
+                "libqbe.c",
+            ]
         )
         os.remove("libqbe.obj")
         print("win32 build ok")
     elif sys.platform == "darwin":
         subprocess.check_call(
-            ["clang", "-Wall", "-Wextra", "-Werror", "-c", "libqbe.c"]
+            ["clang", "-Wall", "-Wextra", "-Werror", "-pedantic", "-c", "libqbe.c"]
         )
         subprocess.check_call(
-            ["clang", "-O3", "-Wall", "-Wextra", "-Werror", "-c", "libqbe.c"]
+            [
+                "clang",
+                "-O3",
+                "-Wall",
+                "-Wextra",
+                "-Werror",
+                "-pedantic",
+                "-c",
+                "libqbe.c",
+            ]
         )
         os.remove("libqbe.o")
         print("darwin build ok")
     elif sys.platform == "linux":
         # Check we can build with gcc and clang
-        subprocess.check_call(["gcc", "-Wall", "-Wextra", "-Werror", "-c", "libqbe.c"])
-        subprocess.check_call(["gcc", "-O3", "-Wall", "-Wextra", "-Werror", "-c", "libqbe.c"])
         subprocess.check_call(
-            ["clang", "-Wall", "-Wextra", "-Werror", "-c", "libqbe.c"]
+            ["gcc", "-Wall", "-Wextra", "-Werror", "-pedantic", "-c", "libqbe.c"]
         )
         subprocess.check_call(
-            ["clang", "-O3", "-Wall", "-Wextra", "-Werror", "-c", "libqbe.c"]
+            ["gcc", "-O2", "-Wall", "-Wextra", "-Werror", "-pedantic", "-c", "libqbe.c"]
+        )
+        subprocess.check_call(
+            ["clang", "-Wall", "-Wextra", "-Werror", "-pedantic", "-c", "libqbe.c"]
+        )
+        subprocess.check_call(
+            [
+                "clang",
+                "-O3",
+                "-Wall",
+                "-Wextra",
+                "-Werror",
+                "-pedantic",
+                "-c",
+                "libqbe.c",
+            ]
         )
         # And can link from C++.
         subprocess.check_call(

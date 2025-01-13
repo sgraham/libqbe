@@ -11,6 +11,17 @@ static LqInitStatus lq_initialized;
 
 static uint lq_ntyp;
 
+static void err(char* s, ...) {
+	va_list args;
+	va_start(args, s);
+	fprintf(stderr, "libqbe: ");
+	vfprintf(stderr, s, args);
+	fprintf(stderr, "\n");
+	va_end(args);
+  // TODO: setjmp/longjmp w/ clean up
+	exit(1);
+}
+
 void lq_init(LqTarget target, FILE* output, const char* debug_names) {
   assert(lq_initialized == LQIS_UNINITIALIZED);
 
@@ -143,11 +154,15 @@ MAKESURE(ref_sizes_match, sizeof(LqRef) == sizeof(Ref));
 MAKESURE(ref_has_expected_size, sizeof(uint32_t) == sizeof(Ref));
 
 static Ref _lqref_to_internal_ref(LqRef ref) {
-  return *(Ref*)&ref.u;
+  Ref ret;
+  memcpy(&ret, &ref, sizeof(Ref));
+  return ret;
 }
 
 static LqRef _internal_ref_to_lqref(Ref ref) {
-  return *(LqRef*)&ref;
+  LqRef ret;
+  memcpy(&ret, &ref, sizeof(Ref));
+  return ret;
 }
 
 #if 0
