@@ -1,5 +1,5 @@
 # TODO:
-# all.h functions -> static
+# pragma warning disables and GCC diagnostic ignores
 
 import os
 import platform
@@ -192,26 +192,45 @@ def replace_noreturn(contents):
         if x.endswith(attr):
             x = "LQ_NO_RETURN " + x.replace(attr, ";")
         result.append(x)
-    return '\n'.join(result)
+    return "\n".join(result)
 
 
 def label_renames(contents):
     # MSVC apparently uses the same namespace for labels and enums.
     # This should probably just be changed upstream.
-    contents = contents.replace('goto Ins;', 'goto Label_Ins;')
-    contents = re.sub(r'\bIns:', 'Label_Ins:', contents)
-    contents = contents.replace('goto Ref;', 'goto Label_Ref;')
-    contents = re.sub(r'\bRef:', 'Label_Ref:', contents)
-    contents = contents.replace('goto Mem;', 'goto Label_Mem;')
-    contents = re.sub(r'\bMem:', 'Label_Mem:', contents)
+    contents = contents.replace("goto Ins;", "goto Label_Ins;")
+    contents = re.sub(r"\bIns:", "Label_Ins:", contents)
+    contents = contents.replace("goto Ref;", "goto Label_Ref;")
+    contents = re.sub(r"\bRef:", "Label_Ref:", contents)
+    contents = contents.replace("goto Mem;", "goto Label_Mem;")
+    contents = re.sub(r"\bMem:", "Label_Mem:", contents)
     return contents
 
 
 def remove_entry_point(contents):
     lines = contents.splitlines()
-    for i,x in enumerate(lines):
-        if x.startswith('main(int '):
-            return '\n'.join(lines[:i-1])
+    for i, x in enumerate(lines):
+        if x.startswith("main(int "):
+            return "\n".join(lines[: i - 1])
+    raise
+
+
+def staticize_prototypes(contents):
+    result = []
+    for line in contents.splitlines():
+        if (
+            line.startswith("void ")
+            or line.startswith("uint32_t ")
+            or line.startswith("char *")
+            or line.startswith("int ")
+            or line.startswith("uint ")
+            or line.startswith("bits ")
+            or line.startswith("Ins *")
+            or line.startswith("Ref ")
+        ) and line.endswith(");"):
+            line = "static " + line
+        result.append(line)
+    return "\n".join(result)
 
 
 def get_config():
@@ -235,7 +254,9 @@ def main():
         amalg.write("/*\n\nQBE LICENSE:\n\n")
         amalg.write(license_contents)
         amalg.write("\n---\n\n")
-        amalg.write("Other libqbe code under the same license by Scott Graham.\n\n")
+        amalg.write(
+            "Other libqbe code under the same license written by Scott Graham.\n\n"
+        )
         amalg.write("*/\n\n")
         amalg.write(get_config())
         amalg.write("\n")
@@ -270,6 +291,9 @@ def main():
 
             if file.endswith("/emit.c"):
                 contents = emit_renames(ns, contents)
+
+            if file.endswith("all.h"):
+                contents = staticize_prototypes(contents)
 
             if file.endswith("/abi.c"):
                 contents = abi_renames(ns, contents)
