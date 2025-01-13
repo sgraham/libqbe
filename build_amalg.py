@@ -1,6 +1,5 @@
 # TODO:
 # pragma warning disables and GCC diagnostic ignores
-# remove getopt
 
 import os
 import platform
@@ -331,6 +330,8 @@ def main():
     QBE_ROOT = os.path.join(os.getcwd(), "qbe")
     if not os.path.exists(QBE_ROOT):
         subprocess.call(["git", "clone", "git://c9x.me/qbe.git"])
+        subprocess.call(["git", "am", "../patches/01-sometimes-uninit.patch"], cwd="qbe")
+        subprocess.call(["git", "am", "../patches/02-func-protos.patch"], cwd="qbe")
 
     with open(os.path.join(QBE_ROOT, "ops.h"), "r") as f:
         ops_h_contents = f.read()
