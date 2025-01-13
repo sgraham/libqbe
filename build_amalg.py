@@ -68,10 +68,6 @@ def namespace_static_funcs(ns, file, contents):
         contents = re.sub(
             r"loopiter\((.*) " + fn + "\);", r"loopiter(\1 " + ns + fn + ");", contents
         )
-        if file == "main.c":
-            contents = re.sub(
-                r"parse\((.*)\b" + fn + r"\b", r"parse(\1" + ns + fn, contents
-            )
 
     return contents
 
@@ -211,6 +207,13 @@ def label_renames(contents):
     return contents
 
 
+def remove_entry_point(contents):
+    lines = contents.splitlines()
+    for i,x in enumerate(lines):
+        if x.startswith('main(int '):
+            return '\n'.join(lines[:i-1])
+
+
 def get_config():
     # TODO, match Makefile, and I think put at runtime instead
     if platform.machine().lower() == "arm64":
@@ -271,6 +274,8 @@ def main():
             if file.endswith("/abi.c"):
                 contents = abi_renames(ns, contents)
 
+            if file == "main.c":
+                contents = remove_entry_point(contents)
 
             contents = replace_noreturn(contents)
 

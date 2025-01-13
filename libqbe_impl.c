@@ -16,6 +16,10 @@ static uint lq_ntyp;
 void lq_init(LqTarget target, FILE* output, const char* debug_names) {
   assert(lq_initialized == LQIS_UNINITIALIZED);
 
+  (void)tlist;
+  (void)qbe_main_dbgfile;
+  (void)qbe_main_data;
+
   switch (target) {
     case LQ_TARGET_AMD64_APPLE:
       T = T_amd64_apple;
