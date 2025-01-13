@@ -16,7 +16,7 @@ data $fmt = { b "One and one make %d!\n", b 0 }
 */
 
 int main(void) {
-  lq_init(LQ_TARGET_DEFAULT, stdout, "");
+  lq_init(LQ_TARGET_DEFAULT, stdout, "P");
 
 #if 0
   lq_func_start(lq_linkage_default(), lq_type_word(), "add");
@@ -40,7 +40,7 @@ int main(void) {
 #endif
 
   lq_func_start(lq_linkage_export(), lq_type_word, "main");
-  lq_i_ret(lq_const_int(0));
+  lq_i_ret(lq_const_int(4));
   lq_func_end();
 
   lq_shutdown();

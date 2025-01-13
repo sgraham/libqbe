@@ -27,7 +27,7 @@ void lq_data_double(double d) {
 typedef enum LqInitStatus {
   LQIS_UNINITIALIZED = 0,
   LQIS_INITIALIZED_EMIT_FIN = 1,
-  LQIS_INITIALIZED_NO_FIN = 1,
+  LQIS_INITIALIZED_NO_FIN = 2,
 } LqInitStatus;
 static LqInitStatus lq_initialized;
 
@@ -82,10 +82,6 @@ void lq_shutdown(void) {
   lq_initialized = LQIS_UNINITIALIZED;
 }
 
-LqRef lq_const_int(int64_t i) {
-  return (LqRef){0};
-}
-
 static Lnk _linkage_to_internal_lnk(LqLinkage linkage) {
   return (Lnk){0};  // TODO
 }
@@ -133,8 +129,17 @@ LqLinkage lq_linkage_export(void) {
 void lq_i_ret_void(void) {
 }
 
-Ref _ref_to_internal_ref(LqRef ref) {
-  return R;
+_Static_assert(sizeof(LqRef) == sizeof(Ref), "unexpected LqRef/Ref sizes");
+_Static_assert(sizeof(uint32_t) == sizeof(Ref), "unexpected Ref size");
+
+Ref _lqref_to_internal_ref(LqRef ref) {
+  return *(Ref*)&ref.u;
+}
+
+LqRef _internal_ref_to_lqref(Ref ref) {
+  return *(LqRef*)&ref;
+}
+
 #if 0
 	Con c;
 
@@ -144,20 +149,6 @@ Ref _ref_to_internal_ref(LqRef ref) {
 		return R;
 	case Ttmp:
 		return tmpref(tokval.str);
-	case Tint:
-		c.type = CBits;
-		c.bits.i = tokval.num;
-		break;
-	case Tflts:
-		c.type = CBits;
-		c.bits.s = tokval.flts;
-		c.flt = 1;
-		break;
-	case Tfltd:
-		c.type = CBits;
-		c.bits.d = tokval.fltd;
-		c.flt = 2;
-		break;
 	case Tthread:
 		c.sym.type = SThr;
 		expect(Tglo);
@@ -169,6 +160,28 @@ Ref _ref_to_internal_ref(LqRef ref) {
 	}
 	return newcon(&c, curf);
 #endif
+
+LqRef lq_const_int(int64_t i) {
+  Con c = {0};
+  c.type = CBits;
+  c.bits.i = i;
+  return _internal_ref_to_lqref(newcon(&c, curf));
+}
+
+LqRef lq_const_single(float f) {
+  Con c = {0};
+  c.type = CBits;
+  c.bits.s = f;
+  c.flt = 1;
+  return _internal_ref_to_lqref(newcon(&c, curf));
+}
+
+LqRef lq_const_double(double d) {
+  Con c = {0};
+  c.type = CBits;
+  c.bits.d = d;
+  c.flt = 2;
+  return _internal_ref_to_lqref(newcon(&c, curf));
 }
 
 void lq_i_ret(LqRef val) {
@@ -176,7 +189,7 @@ void lq_i_ret(LqRef val) {
   if (val.u == 0)
     curb->jmp.type = Jret0;
   else if (rcls != K0) {
-    Ref r = _ref_to_internal_ref(val);
+    Ref r = _lqref_to_internal_ref(val);
     if (req(r, R))
       err("invalid return value");
     curb->jmp.arg = r;
@@ -200,9 +213,8 @@ LqRef lq_func_end(void) {
 	memset(tmph, 0, tmphcap * sizeof tmph[0]);  // ??
 	qbe_parse_typecheck(curf);
 
-  // TODO:
+  qbe_main_func(curf);
   return (LqRef){0};
-	//return curf;
 }
 
 LqBlock lq_block_declare_named(const char* name) {

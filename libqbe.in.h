@@ -27,6 +27,20 @@ typedef enum LqTarget {
   LQ_TARGET_RV64,           //
 } LqTarget;
 
+/*
+debug_flags string can contain the following characters to cause QBE to output
+information to stderr while compiling:
+- P: parsing
+- M: memory optimization
+- N: ssa construction
+- C: copy elimination
+- F: constant folding
+- A: abi lowering
+- I: instruction selection
+- L: liveness
+- S: spilling
+- R: reg. allocation
+*/
 void lq_init(LqTarget target /*=LQ_TARGET_DEFAULT*/,
              FILE* output /*=stdout*/,
              const char* debug_flags /*=""*/);
