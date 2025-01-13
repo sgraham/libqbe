@@ -321,14 +321,6 @@ def staticize_prototypes(contents):
             or line.startswith("extern Typ *")
             or line.startswith("extern Ins ")
             or line.startswith("extern Op ")
-            or line.startswith("extern Amd64Op ")
-            or line.startswith("extern int amd64_sysv_rsave")
-            or line.startswith("extern int amd64_sysv_rclob")
-            or line.startswith("extern int arm64_rsave")
-            or line.startswith("extern int arm64_rclob")
-            or line.startswith("extern Rv64Op ")
-            or line.startswith("extern int rv64_rsave")
-            or line.startswith("extern int rv64_rclob")
         ):
             line = "static " + line.replace("extern ", "")
         result.append(line)
@@ -356,12 +348,16 @@ def main():
             """\
 #ifdef _MSC_VER
 #define LQ_NO_RETURN __declspec(noreturn)
+#pragma warning(push)
+#pragma warning(disable: 4146)
+#pragma warning(disable: 4200)
+#pragma warning(disable: 4244)
+#pragma warning(disable: 4245)
+#pragma warning(disable: 4389)
+#pragma warning(disable: 4459)
+#pragma warning(disable: 4701)
 #else
 #define LQ_NO_RETURN __attribute__((noreturn))
-#endif
-
-#ifdef __cplusplus
-extern "C" {
 #endif
 
 """
@@ -429,6 +425,28 @@ extern "C" {
 
             if file.endswith("all.h"):
                 contents = staticize_prototypes(contents)
+                # MSVC annoyingly doesn't handle static forward declarations
+                # without a size properly and just dies at the point of
+                # declaration. We can't easily restructure to get the ops,
+                # regcounts, etc. before the decl, so just hardcode and rely on
+                # the MAKESUREs to make sure they match.
+                contents = contents.replace('extern Amd64Op amd64_op[];',
+                                            'static Amd64Op amd64_op[138];')
+                contents = contents.replace('extern int amd64_sysv_rsave[];',
+                                            'static int amd64_sysv_rsave[25];')
+                contents = contents.replace('extern int amd64_sysv_rclob[];',
+                                            'static int amd64_sysv_rclob[6];')
+                contents = contents.replace('extern int arm64_rsave[];',
+                                            'static int arm64_rsave[44];')
+                contents = contents.replace('extern int arm64_rclob[];',
+                                            'static int arm64_rclob[19];')
+                contents = contents.replace('extern Rv64Op rv64_op[];',
+                                            'static Rv64Op rv64_op[138];')
+                contents = contents.replace('extern int rv64_rsave[];',
+                                            'static int rv64_rsave[34];')
+                contents = contents.replace('extern int rv64_rclob[];',
+                                            'static int rv64_rclob[24];')
+
 
             if file.endswith("/abi.c"):
                 contents = abi_renames(ns, contents)
@@ -516,8 +534,8 @@ extern "C" {
         amalg.write(
             """\
 
-#ifdef __cplusplus
-}  // extern "C"
+#ifdef _MSC_VER
+#pragma warning(pop)
 #endif
 """
         )
@@ -534,7 +552,10 @@ extern "C" {
 
     if sys.platform == "win32":
         subprocess.check_call(
-            ["cl", "/D_CRT_SECURE_NO_WARNINGS", "/nologo", "/W4", "/WX", "libqbe.c"]
+            ["cl", "/D_CRT_SECURE_NO_WARNINGS", "/nologo", "/W4", "/WX", "/c", "libqbe.c"]
+        )
+        subprocess.check_call(
+            ["cl", "/O2", "/D_CRT_SECURE_NO_WARNINGS", "/nologo", "/W4", "/WX", "/c", "libqbe.c"]
         )
         os.remove("libqbe.obj")
         print("win32 build ok")
@@ -542,13 +563,20 @@ extern "C" {
         subprocess.check_call(
             ["clang", "-Wall", "-Wextra", "-Werror", "-c", "libqbe.c"]
         )
+        subprocess.check_call(
+            ["clang", "-O3", "-Wall", "-Wextra", "-Werror", "-c", "libqbe.c"]
+        )
         os.remove("libqbe.o")
         print("darwin build ok")
     elif sys.platform == "linux":
         # Check we can build with gcc and clang
         subprocess.check_call(["gcc", "-Wall", "-Wextra", "-Werror", "-c", "libqbe.c"])
+        subprocess.check_call(["gcc", "-O3", "-Wall", "-Wextra", "-Werror", "-c", "libqbe.c"])
         subprocess.check_call(
             ["clang", "-Wall", "-Wextra", "-Werror", "-c", "libqbe.c"]
+        )
+        subprocess.check_call(
+            ["clang", "-O3", "-Wall", "-Wextra", "-Werror", "-c", "libqbe.c"]
         )
         # And can link from C++.
         subprocess.check_call(
