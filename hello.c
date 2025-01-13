@@ -15,9 +15,7 @@ export function w $main() {                # Main function
 data $fmt = { b "One and one make %d!\n", b 0 }
 */
 
-int main(void) {
-  lq_init(LQ_TARGET_DEFAULT, stdout, "");
-
+void compile(void) {
 #if 0
   lq_func_start(lq_linkage_default(), lq_type_word(), "add");
   LqRef a = lq_func_param(lq_type_word());
@@ -45,6 +43,16 @@ int main(void) {
   lq_func_start(lq_linkage_export(), lq_type_word, "main");
   lq_i_ret(lq_const_int(4));
   lq_func_end();
+}
 
+int main(void) {
+  printf("---------- COMPILED FOR DEFAULT TARGET FOLLOWS ----------\n");
+  lq_init(LQ_TARGET_DEFAULT, stdout, "");
+  compile();
+  lq_shutdown();
+
+  printf("---------- COMPILED FOR AMD64_WIN FOLLOWS  ----------\n");
+  lq_init(LQ_TARGET_AMD64_WINDOWS, stdout, "");
+  compile();
   lq_shutdown();
 }

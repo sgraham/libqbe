@@ -37,7 +37,7 @@ void lq_init(LqTarget target, FILE* output, const char* debug_names) {
       T = T_amd64_sysv;
       break;
     case LQ_TARGET_AMD64_WINDOWS:
-      abort();
+      T = T_amd64_win;
       break;
     case LQ_TARGET_ARM64:
       T = T_arm64;
@@ -59,9 +59,7 @@ void lq_init(LqTarget target, FILE* output, const char* debug_names) {
 #  if defined(__aarch64__)
 #    error port win arm64
 #  else
-      // TODO
-      // T = T_amd64_windows;
-      T = T_amd64_sysv;
+      T = T_amd64_win;
 #  endif
 #else
 #  if defined(__aarch64__)

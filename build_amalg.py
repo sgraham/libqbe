@@ -1,6 +1,7 @@
 # TODO:
 # pragma warning disables and GCC diagnostic ignores
 
+import glob
 import os
 import platform
 import re
@@ -33,6 +34,7 @@ LIBQBE_C_FILES = [
     "amd64/isel.c",
     "amd64/sysv.c",
     "amd64/targ.c",
+    "amd64/winabi.c",
     "arm64/abi.c",
     "arm64/emit.c",
     "arm64/isel.c",
@@ -84,7 +86,8 @@ def emit_renames(ns, contents):
 
 def abi_renames(ns, contents):
     ns_up = ns.upper()
-    for x in ["Cstk", "Cptr", "Cstk1", "Cstk2", "Cfpint", "Class", "Insl", "Params"]:
+    for x in ["Cstk", "Cptr", "Cstk1", "Cstk2", "Cfpint",
+              "Class", "AClass", "RAlloc", "Insl", "Params"]:
         contents = re.sub(r"\b" + x + r"\b", ns_up + x, contents)
     for x in ["gpreg", "fpreg"]:
         contents = re.sub(r"\b" + x + r"\b", ns + x, contents)
@@ -329,9 +332,9 @@ def staticize_prototypes(contents):
 def main():
     QBE_ROOT = os.path.join(os.getcwd(), "qbe")
     if not os.path.exists(QBE_ROOT):
-        subprocess.call(["git", "clone", "git://c9x.me/qbe.git"])
-        subprocess.call(["git", "am", "../patches/01-sometimes-uninit.patch"], cwd="qbe")
-        subprocess.call(["git", "am", "../patches/02-func-protos.patch"], cwd="qbe")
+        subprocess.check_call(["git", "clone", "git://c9x.me/qbe.git"])
+        for patch in glob.glob("patches/*.patch"):
+            subprocess.check_call(["git", "am", os.path.join("..", patch)], cwd=QBE_ROOT)
 
     with open(os.path.join(QBE_ROOT, "ops.h"), "r") as f:
         ops_h_contents = f.read()
@@ -456,7 +459,9 @@ def main():
                     "extern int rv64_rclob[];", "static int rv64_rclob[24];"
                 )
 
-            if file.endswith("/abi.c"):
+            if (file.endswith("/abi.c") or
+                file.endswith("amd64/sysv.c") or
+                file.endswith("amd64/winabi.c")):
                 contents = abi_renames(ns, contents)
 
             if file == "main.c":
