@@ -244,14 +244,6 @@ def staticize_prototypes(contents):
     return "\n".join(result)
 
 
-def get_config():
-    # TODO, match Makefile, and I think put at runtime instead
-    if platform.machine().lower() == "arm64":
-        return "#define Deftgt T_arm64_apple"
-    else:
-        return "#define Deftgt T_amd64_sysv"
-
-
 def main():
     QBE_ROOT = os.path.join(os.getcwd(), "qbe")
     if not os.path.exists(QBE_ROOT):
@@ -269,8 +261,6 @@ def main():
             "Other libqbe code under the same license written by Scott Graham.\n\n"
         )
         amalg.write("*/\n\n")
-        amalg.write(get_config())
-        amalg.write("\n")
         amalg.write(
             """\
 #ifdef _MSC_VER
