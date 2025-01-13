@@ -537,6 +537,11 @@ extern "C" {
             ["cl", "/D_CRT_SECURE_NO_WARNINGS", "/nologo", "/W4", "/WX", "libqbe.c"]
         )
         os.remove("libqbe.obj")
+    elif sys.platform == "darwin":
+        subprocess.check_call(
+            ["clang", "-Wall", "-Wextra", "-Werror", "-c", "libqbe.c"]
+        )
+        os.remove("libqbe.o")
     elif sys.platform == "linux":
         # Check we can build with gcc and clang
         subprocess.check_call(["gcc", "-Wall", "-Wextra", "-Werror", "-c", "libqbe.c"])
@@ -566,8 +571,8 @@ extern "C" {
         syms = [l for l in syms if "UND " not in l]
         for s in syms:
             symname = s.split()[-1]
-            if not symname.startswith('lq_'):
-                print('Unexpected symbol:', symname)
+            if not symname.startswith("lq_"):
+                print("Unexpected symbol:", symname)
                 sys.exit(1)
         print("These are the global exported symbols from libqbe.o. They look ok, but")
         print("confirm that they match libqbe.h (only).")
