@@ -117,6 +117,29 @@ void lq_i_ret(LqRef val);
 void lq_i_jmp(LqBlock block);
 void lq_i_jnz(LqRef cond, LqBlock if_true, LqBlock if_false);
 
+LqRef lq_i_calla(LqType result, LqRef func, int num_args, LqType* types, LqRef* args);
+
+LqRef lq_i_call1(LqType result, LqRef func, LqType type0, LqRef arg0);
+LqRef lq_i_call2(LqType result, LqRef func, LqType type0, LqRef arg0, LqType type1, LqRef arg1);
+LqRef lq_i_call3(LqType result,
+                 LqRef func,
+                 LqType type0,
+                 LqRef arg0,
+                 LqType type1,
+                 LqRef arg1,
+                 LqType type2,
+                 LqRef arg2);
+LqRef lq_i_call4(LqType result,
+                 LqRef func,
+                 LqType type0,
+                 LqRef arg0,
+                 LqType type1,
+                 LqRef arg1,
+                 LqType type2,
+                 LqRef arg2,
+                 LqType type3,
+                 LqRef arg3);
+
 LqRef lq_func_end(void);
 
 

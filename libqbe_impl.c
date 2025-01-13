@@ -212,7 +212,7 @@ LqRef lq_func_param_named(LqType type, const char* name) {
   int k = _lqtype_to_cls_and_ty(type, &ty);
   Ref r = newtmp(0, k, curf);
   LQ_NAMED_IF_DEBUG(curf->tmp[r.val].name, name);
-  // TODO: env ptr
+  // TODO: env ptr, varargs
   if (k == Kc) {
     *curi = (Ins){Oparc, Kl, r, {TYPE(ty)}};
   } else if (k >= Ksb) {
@@ -339,6 +339,86 @@ void lq_i_ret(LqRef val) {
 
 void lq_i_ret_void(void) {
   lq_i_ret((LqRef){0});  // TODO: not sure if this is correct == {RTmp, 0}.
+}
+
+LqRef lq_i_calla(LqType result, LqRef func, int num_args, LqType* types, LqRef* args) {
+  LQ_ASSERT(_ps == PIns || _ps == PPhi);
+  // args are inserted into instrs first, then the call
+  for (int i = 0; i < num_args; ++i) {
+    LQ_ASSERT(curi - insb < NIns);
+    int ty;
+    int k = _lqtype_to_cls_and_ty(types[i], &ty);
+    Ref r = _lqref_to_internal_ref(args[i]);
+    // TODO: env, varargs
+    if (k == Kc) {
+      *curi = (Ins){Oargc, Kl, R, {TYPE(ty), r}};
+    } else if (k >= Ksb) {
+      *curi = (Ins){Oargsb + (k - Ksb), Kw, R, {r}};
+    } else {
+      *curi = (Ins){Oarg, k, R, {r}};
+    }
+    ++curi;
+  }
+
+  {
+    LQ_ASSERT(curi - insb < NIns);
+    int ty;
+    int k = _lqtype_to_cls_and_ty(result, &ty);
+    curf->leaf = 0;
+    *curi = (Ins){0};
+    curi->op = Ocall;
+    curi->arg[0] = _lqref_to_internal_ref(func);
+    if (k == Kc) {
+      k = Kl;
+      curi->arg[1] = TYPE(ty);
+    }
+    if (k >= Ksb) {
+      k = Kw;
+    }
+    curi->cls = k;
+    ++curi;
+  }
+  Ref tmp = newtmp(NULL, Kx, curf);
+  _ps = PIns;
+  return _internal_ref_to_lqref(tmp);
+}
+
+LqRef lq_i_call1(LqType result, LqRef func, LqType type0, LqRef arg0) {
+  return lq_i_calla(result, func, 1, &type0, &arg0);
+}
+
+LqRef lq_i_call2(LqType result, LqRef func, LqType type0, LqRef arg0, LqType type1, LqRef arg1) {
+  LqType types[2] = {type0, type1};
+  LqRef args[2] = {arg0, arg1};
+  return lq_i_calla(result, func, 2, types, args);
+}
+
+LqRef lq_i_call3(LqType result,
+                 LqRef func,
+                 LqType type0,
+                 LqRef arg0,
+                 LqType type1,
+                 LqRef arg1,
+                 LqType type2,
+                 LqRef arg2) {
+  LqType types[3] = {type0, type1, type2};
+  LqRef args[3] = {arg0, arg1, arg2};
+  return lq_i_calla(result, func, 3, types, args);
+}
+
+LqRef lq_i_call4(LqType result,
+                 LqRef func,
+                 LqType type0,
+                 LqRef arg0,
+                 LqType type1,
+                 LqRef arg1,
+                 LqType type2,
+                 LqRef arg2,
+                 LqType type3,
+                 LqRef arg3) {
+  LqType types[4] = {type0, type1, type2, type3};
+  LqRef args[4] = {arg0, arg1, arg2, arg3};
+  return lq_i_calla(result, func, 4, types, args);
 }
 
 LqRef _normal_two_op_instr(int op, LqType size_class, LqRef arg0, LqRef arg1) {

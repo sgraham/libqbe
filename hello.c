@@ -29,23 +29,22 @@ void compile(void) {
   lq_data_string("One and one make %d!\n");
   lq_data_byte(0);
   LqRef fmt = lq_data_end();
-
-  lq_func_start(lq_linkage_export, lq_type_word(), "main");
-  LqRef r = lq_i_call(LQ_TYPE_W, add_func, lq_const_word(1), lq_const_word(1));
-  LqRef printf_func = lq_extern("printf");
-  lq_i_call_varargs(printf, r);
-  lq_i_ret(lq_const_word(0));
-  LqRef main = lq_func_end();
 #endif
 
   lq_func_start(lq_linkage_export, lq_type_word, "main");
-  lq_i_ret(lq_const_int(4));
-  lq_func_end();
+  LqRef r = lq_i_call2(lq_type_word, add_func, lq_type_word, lq_const_int(1), lq_type_word,
+                       lq_const_int(1));
+  (void)r;
+  //LqRef printf_func = lq_extern("printf");
+  //lq_i_call_varargs(printf, r);
+  lq_i_ret(lq_const_int(0));
+  LqRef main = lq_func_end();
+  (void)main;
 }
 
 int main(void) {
   printf("---------- COMPILED FOR DEFAULT TARGET FOLLOWS ----------\n");
-  lq_init(LQ_TARGET_DEFAULT, stdout, "");
+  lq_init(LQ_TARGET_DEFAULT, stdout, "P");
   compile();
   lq_shutdown();
 
