@@ -4,26 +4,6 @@ static PState _ps;
 static Blk _block_arena[1024];  // TODO: lq_init arg (this is per func)
 static int _num_blocks;
 
-void lq_data_string(const char* str) {
-#if 0
-  for (const char* p = str; *p; ++p) {
-    lq_data_byte(*p);
-  }
-#endif
-}
-
-void lq_data_float(float f) {
-#if 0
-  lq_data_word(*(uint32_t*)&f);
-#endif
-}
-
-void lq_data_double(double d) {
-#if 0
-  lq_data_long(*(uint64_t*)&d);
-#endif
-}
-
 typedef enum LqInitStatus {
   LQIS_UNINITIALIZED = 0,
   LQIS_INITIALIZED_EMIT_FIN = 1,
@@ -70,7 +50,8 @@ void lq_init(LqTarget target, FILE* output, const char* debug_names) {
   lq_ntyp = 0;
   typ = vnew(0, sizeof(typ[0]), PHeap);
 
-  lq_initialized = debug_names[0] == 0 ? LQIS_INITIALIZED_EMIT_FIN : LQIS_INITIALIZED_NO_FIN;
+  dbg = debug_names[0] != 0;
+  lq_initialized = dbg ? LQIS_INITIALIZED_NO_FIN : LQIS_INITIALIZED_EMIT_FIN;
 }
 
 void lq_shutdown(void) {
@@ -83,6 +64,7 @@ void lq_shutdown(void) {
 }
 
 static Lnk _linkage_to_internal_lnk(LqLinkage linkage) {
+  (void)linkage;
   return (Lnk){0};  // TODO
 }
 
@@ -122,15 +104,16 @@ void lq_func_start(LqLinkage linkage, LqType return_type, const char* name) {
   lq_block_start();
 }
 
+LqLinkage lq_linkage_default(void) {
+  return (LqLinkage){0};  // TODO
+}
+
 LqLinkage lq_linkage_export(void) {
   return (LqLinkage){0};  // TODO
 }
 
-void lq_i_ret_void(void) {
-}
-
-_Static_assert(sizeof(LqRef) == sizeof(Ref), "unexpected LqRef/Ref sizes");
-_Static_assert(sizeof(uint32_t) == sizeof(Ref), "unexpected Ref size");
+MAKESURE(ref_sizes_match, sizeof(LqRef) == sizeof(Ref));
+MAKESURE(ref_has_expected_size, sizeof(uint32_t) == sizeof(Ref));
 
 Ref _lqref_to_internal_ref(LqRef ref) {
   return *(Ref*)&ref.u;
@@ -198,6 +181,10 @@ void lq_i_ret(LqRef val) {
   _ps = PLbl;
 }
 
+void lq_i_ret_void(void) {
+  lq_i_ret((LqRef){0});  // TODO: not sure if this is correct == {RTmp, 0}.
+}
+
 LqRef lq_func_end(void) {
 	if (!curb)
 		err("empty function");
@@ -246,6 +233,22 @@ LqBlock lq_block_start_named(const char* name) {
   lq_block_start_previously_declared(new);
   return new;
 }
+
+#if 0
+void lq_data_string(const char* str) {
+  for (const char* p = str; *p; ++p) {
+    lq_data_byte(*p);
+  }
+}
+
+void lq_data_float(float f) {
+  lq_data_word(*(uint32_t*)&f);
+}
+
+void lq_data_double(double d) {
+  lq_data_long(*(uint64_t*)&d);
+}
+#endif
 
 
 #if 0

@@ -29,7 +29,8 @@ typedef enum LqTarget {
 
 /*
 debug_flags string can contain the following characters to cause QBE to output
-information to stderr while compiling:
+information to stderr while compiling. NOTE: no final assembly will be emitted
+if string other than "" is specified.
 - P: parsing
 - M: memory optimization
 - N: ssa construction

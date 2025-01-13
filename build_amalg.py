@@ -1,3 +1,6 @@
+# TODO:
+# all.h functions -> static
+
 import os
 import platform
 import re
@@ -186,6 +189,28 @@ def make_instr_prototypes(ops_h_contents):
     return ret
 
 
+def replace_noreturn(contents):
+    attr = "__attribute__((noreturn));"
+    result = []
+    for x in contents.splitlines():
+        if x.endswith(attr):
+            x = "LQ_NO_RETURN " + x.replace(attr, ";")
+        result.append(x)
+    return '\n'.join(result)
+
+
+def label_renames(contents):
+    # MSVC apparently uses the same namespace for labels and enums.
+    # This should probably just be changed upstream.
+    contents = contents.replace('goto Ins;', 'goto Label_Ins;')
+    contents = re.sub(r'\bIns:', 'Label_Ins:', contents)
+    contents = contents.replace('goto Ref;', 'goto Label_Ref;')
+    contents = re.sub(r'\bRef:', 'Label_Ref:', contents)
+    contents = contents.replace('goto Mem;', 'goto Label_Mem;')
+    contents = re.sub(r'\bMem:', 'Label_Mem:', contents)
+    return contents
+
+
 def get_config():
     # TODO, match Makefile, and I think put at runtime instead
     if platform.machine().lower() == "arm64":
@@ -211,6 +236,15 @@ def main():
         amalg.write("*/\n\n")
         amalg.write(get_config())
         amalg.write("\n")
+        amalg.write(
+            """\
+#ifdef _MSC_VER
+#define LQ_NO_RETURN __declspec(noreturn)
+#else
+#define LQ_NO_RETURN __attribute__((noreturn))
+#endif
+"""
+        )
 
         for file in LIBQBE_C_FILES:
             with open(os.path.join(QBE_ROOT, file), "rb") as f:
@@ -220,6 +254,7 @@ def main():
 
             if file.endswith(".c"):
                 contents = namespace_static_funcs(ns, file, contents)
+                contents = label_renames(contents)
 
             if file == "arm64/all.h" or file.startswith("arm64/"):
                 contents = arm64_reg_rename(contents)
@@ -235,6 +270,9 @@ def main():
 
             if file.endswith("/abi.c"):
                 contents = abi_renames(ns, contents)
+
+
+            contents = replace_noreturn(contents)
 
             amalg.write("/*** START FILE: %s ***/\n" % file)
             for line in contents.splitlines():

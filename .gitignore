@@ -6,6 +6,7 @@ tags
 x.ssa
 m.bat
 hello.exe
-hello.pdb
-hello.ilk
+*.ilk
+*.pdb
+*.obj
 .vs/
