@@ -17,11 +17,11 @@ data $fmt = { b "One and one make %d!\n", b 0 }
 
 void compile(void) {
   lq_func_start(lq_linkage_default, lq_type_word, "add");
-  LqRef a = lq_func_param(lq_type_word);
-  LqRef b = lq_func_param(lq_type_word);
+  LqRef a = lq_func_param_named(lq_type_word, "a");
+  LqRef b = lq_func_param_named(lq_type_word, "b");
   LqRef c = lq_i_add(lq_type_word, a, b);
   lq_i_ret(c);
-  LqRef add_func = lq_func_end();
+  LqFunc add_func = lq_func_end();
   (void)add_func;
 
 #if 0
@@ -29,27 +29,29 @@ void compile(void) {
   lq_data_string("One and one make %d!\n");
   lq_data_byte(0);
   LqRef fmt = lq_data_end();
-#endif
 
   lq_func_start(lq_linkage_export, lq_type_word, "main");
-  LqRef r = lq_i_call2(lq_type_word, add_func, lq_type_word, lq_const_int(1), lq_type_word,
-                       lq_const_int(1));
+  LqRef r = lq_i_call2(lq_type_word, lq_ref_for_func(add_func), lq_type_word, lq_const_int(1),
+                       lq_type_word, lq_const_int(2));
   (void)r;
   //LqRef printf_func = lq_extern("printf");
   //lq_i_call_varargs(printf, r);
   lq_i_ret(lq_const_int(0));
-  LqRef main = lq_func_end();
+  LqFunc main = lq_func_end();
   (void)main;
+#endif
 }
 
 int main(void) {
+#if 0
   printf("---------- COMPILED FOR DEFAULT TARGET FOLLOWS ----------\n");
-  lq_init(LQ_TARGET_DEFAULT, stdout, "P");
+  lq_init(LQ_TARGET_DEFAULT, stdout, "");
   compile();
   lq_shutdown();
+#endif
 
-  printf("---------- COMPILED FOR AMD64_WIN FOLLOWS  ----------\n");
-  lq_init(LQ_TARGET_AMD64_WINDOWS, stdout, "");
+  printf("---------- COMPILED FOR AMD64_SYSV FOLLOWS  ----------\n");
+  lq_init(LQ_TARGET_AMD64_SYSV, stdout, "PMNCFAILSR");
   compile();
   lq_shutdown();
 }

@@ -268,7 +268,10 @@ LqRef lq_const_double(double d) {
   return _internal_ref_to_lqref(newcon(&c, curf));
 }
 
-LqRef lq_func_end(void) {
+// This has to return a LqFunc that's the name that we re-lookup on use rather
+// than directly a Ref because Con Refs are stored per function (so when calling
+// the function, we need to create a new one in the caller).
+LqFunc lq_func_end(void) {
   if (!curb) {
     err("empty function");
   }
@@ -285,8 +288,19 @@ LqRef lq_func_end(void) {
   memset(tmph, 0, tmphcap * sizeof tmph[0]);  // ??
   qbe_parse_typecheck(curf);
 
+  LqFunc ret = {intern(curf->name)};
+
   qbe_main_func(curf);
-  return (LqRef){0};
+
+  return ret;
+}
+
+LqRef lq_ref_for_func(LqFunc func) {
+  Con c = {0};
+  c.type = CAddr;
+  c.sym.id = func.u;
+  Ref ret = newcon(&c, curf);
+  return _internal_ref_to_lqref(ret);
 }
 
 LqBlock lq_block_declare_named(const char* name) {
@@ -360,6 +374,8 @@ LqRef lq_i_calla(LqType result, LqRef func, int num_args, LqType* types, LqRef* 
     ++curi;
   }
 
+  Ref tmp;
+
   {
     LQ_ASSERT(curi - insb < NIns);
     int ty;
@@ -376,9 +392,10 @@ LqRef lq_i_calla(LqType result, LqRef func, int num_args, LqType* types, LqRef* 
       k = Kw;
     }
     curi->cls = k;
+    tmp = newtmp(NULL, k, curf);
+    curi->to = tmp;
     ++curi;
   }
-  Ref tmp = newtmp(NULL, Kx, curf);
   _ps = PIns;
   return _internal_ref_to_lqref(tmp);
 }

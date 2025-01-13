@@ -18,6 +18,7 @@ LQ_OPAQUE_STRUCT_DEF(LqLinkage);
 LQ_OPAQUE_STRUCT_DEF(LqType);
 LQ_OPAQUE_STRUCT_DEF(LqBlock);
 LQ_OPAQUE_STRUCT_DEF(LqRef);
+LQ_OPAQUE_STRUCT_DEF(LqFunc);
 
 #undef LQ_OPAQUE_STRUCT_DEF
 
@@ -98,6 +99,11 @@ LqRef lq_data_end(void);
 LqRef lq_extern(const char* name);
 
 void lq_func_start(LqLinkage linkage, LqType return_type, const char* name);
+LqFunc lq_func_end(void);
+
+// LqRef are function local, so the return value cannot be cached across
+// functions.
+LqRef lq_ref_for_func(LqFunc func);
 
 #define lq_func_param(type) lq_func_param_named(type, NULL)
 LqRef lq_func_param_named(LqType type, const char* name);
@@ -139,8 +145,6 @@ LqRef lq_i_call4(LqType result,
                  LqRef arg2,
                  LqType type3,
                  LqRef arg3);
-
-LqRef lq_func_end(void);
 
 
 LqType lq_type_start_struct(const char* name, int align /*=0*/);
