@@ -35,7 +35,7 @@ LqLinkage lq_linkage_create(int alignment,
                             bool common,
                             const char* section_name,
                             const char* section_flags) {
-  assert(_num_linkages < (int)(sizeof(_linkage_arena) / sizeof(_linkage_arena[0])));
+  LQ_ASSERT(_num_linkages < (int)(sizeof(_linkage_arena) / sizeof(_linkage_arena[0])));
   LqLinkage ret = {_num_linkages++};
   _linkage_arena[ret.u] = (Lnk){
       .export = exported,
@@ -53,14 +53,14 @@ static Lnk* _linkage_to_internal_lnk(LqLinkage linkage) {
 }
 
 void lq_init(LqTarget target, FILE* output, const char* debug_names) {
-  assert(lq_initialized == LQIS_UNINITIALIZED);
+  LQ_ASSERT(lq_initialized == LQIS_UNINITIALIZED);
 
   _num_linkages = 0;
   // These have to match the header for lq_linkage_default/export.
   LqLinkage def = lq_linkage_create(8, false, false, false, NULL, NULL);
-  assert(def.u == 0); (void)def;
-  LqLinkage exp = lq_linkage_create(8, false, false, false, NULL, NULL);
-  assert(exp.u == 1); (void)exp;
+  LQ_ASSERT(def.u == 0); (void)def;
+  LqLinkage exp = lq_linkage_create(8, true, false, false, NULL, NULL);
+  LQ_ASSERT(exp.u == 1); (void)exp;
 
   (void)qbe_parse_tmpref; // TODO
   (void)qbe_main_dbgfile;
@@ -126,7 +126,7 @@ void lq_init(LqTarget target, FILE* output, const char* debug_names) {
 }
 
 void lq_shutdown(void) {
-  assert(lq_initialized != LQIS_UNINITIALIZED);
+  LQ_ASSERT(lq_initialized != LQIS_UNINITIALIZED);
   if (lq_initialized == LQIS_INITIALIZED_EMIT_FIN) {
     T.emitfin(outf);
   }
@@ -161,7 +161,7 @@ void lq_func_start(LqLinkage linkage, LqType return_type, const char* name) {
   blink = &curf->start;
   curf->retty = Kx;
   rcls = return_type.u;
-  assert(return_type.u != LQ_TYPE_C);
+  LQ_ASSERT(return_type.u != LQ_TYPE_C);
   if (return_type.u > LQ_TYPE_0) {
     curf->retty = return_type.u;
     rcls = LQ_TYPE_C;
@@ -262,7 +262,7 @@ LqRef lq_func_end(void) {
   curf->nblk = _num_blocks;
   curf->rpo = 0;
   for (Blk* b = curf->start; b; b = b->link) {
-    assert(b->dlink == 0);
+    LQ_ASSERT(b->dlink == 0);
   }
   memset(tmph, 0, tmphcap * sizeof tmph[0]);  // ??
   qbe_parse_typecheck(curf);
@@ -272,7 +272,7 @@ LqRef lq_func_end(void) {
 }
 
 LqBlock lq_block_declare_named(const char* name) {
-  assert(_num_blocks < (int)(sizeof(_block_arena) / sizeof(_block_arena[0])));
+  LQ_ASSERT(_num_blocks < (int)(sizeof(_block_arena) / sizeof(_block_arena[0])));
   LqBlock ret = {_num_blocks++};
   Blk* blk = &_block_arena[ret.u];
   memset(blk, 0, sizeof(Blk));

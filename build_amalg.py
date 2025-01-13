@@ -75,6 +75,10 @@ def namespace_static_funcs(ns, file, contents):
     return contents
 
 
+def rename_asserts(contents):
+    return contents.replace('assert(', 'LQ_ASSERT(')
+
+
 def emit_renames(ns, contents):
     ns_up = ns.upper()
     for x in ["E", "Ki", "Ka"]:
@@ -364,6 +368,10 @@ def main():
 #define LQ_NO_RETURN __attribute__((noreturn))
 #endif
 
+#ifndef LQ_ASSERT
+#include <assert.h>
+#define LQ_ASSERT(x) assert(x)
+#endif
 """
         )
 
@@ -377,6 +385,7 @@ def main():
                 contents = namespace_static_funcs(ns, file, contents)
                 contents = label_renames(contents)
                 contents = staticize_targets(contents)
+                contents = rename_asserts(contents)
 
             if file == "arm64/all.h" or file.startswith("arm64/"):
                 contents = arm64_reg_rename(contents)
