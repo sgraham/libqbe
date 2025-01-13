@@ -1,6 +1,10 @@
 #ifndef LIBQBE_H_INCLUDED_
 #define LIBQBE_H_INCLUDED_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -117,5 +121,9 @@ void lq_type_add_field_with_count(LqType type, LqType field, uint32_t count);
 LqType lq_type_end(void);
 
 LqType lq_make_type_opaque(const char* name, int align, int size);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  /* LIBQBE_H_INCLUDED_ */

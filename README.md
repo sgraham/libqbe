@@ -22,10 +22,10 @@ script to amalgamate-and-rename is used instead of just directly renaming
 symbols in the code and carrying a set of patches to (hopefully) make ongoing
 integration of upstream QBE more straightforward.
 
-libqbe.h then presents an externally-visible interface to the code (amalgamated
-into libqbe.c). So, in order to use libqbe in your project, you need build only
-libqbe.c (which does no `#include`s beyond the standard C library), and write
-your front end against libqbe.h.
+`libqbe.h` then presents an externally-visible interface to the code
+(amalgamated into `libqbe.c`). So, in order to use libqbe in your project, you
+need build only libqbe.c (which does no `#include`s beyond the standard C
+library), and write your front end against `libqbe.h`.
 
 ## Warning
 
@@ -40,8 +40,9 @@ to the standard command line tool if necessary.
 libqbe uses `Lq`, `LQ_`, and `lq_` as prefixes for types, defines/constants, and
 functions respectively.
 
-The smallest possible usage looks like this, which you can confirm that you can
-build libqbe.c correctly.
+The smallest possible usage looks like this, which you can use to confirm that
+you can build `libqbe.c` correctly.
+
 ```c
 #include "libqbe.h"
 

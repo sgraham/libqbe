@@ -1,5 +1,3 @@
-#include "libqbe.h"
-
 static PState _ps;
 static Blk _block_arena[1024];  // TODO: lq_init arg (this is per func)
 static int _num_blocks;

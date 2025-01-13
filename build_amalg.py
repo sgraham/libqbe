@@ -42,6 +42,7 @@ LIBQBE_C_FILES = [
     "rv64/emit.c",
     "rv64/isel.c",
     "rv64/targ.c",
+    "../libqbe.h",
     "../libqbe_impl.c",
 ]
 
@@ -217,17 +218,17 @@ def remove_function(contents, func_ret_type, func_name):
             result.pop()
             in_function = True
             continue
-        elif in_function and x.startswith('}'):
+        elif in_function and x.startswith("}"):
             in_function = False
             continue
         elif in_function:
             continue
         result.append(x)
-    return '\n'.join(result)
+    return "\n".join(result)
 
 
 def remove_data(contents, look_for):
-    return '\n'.join([x for x in contents.splitlines() if not x.startswith(look_for)])
+    return "\n".join([x for x in contents.splitlines() if not x.startswith(look_for)])
 
 
 def remove_lines_range(contents, start, end):
@@ -244,14 +245,15 @@ def remove_lines_range(contents, start, end):
         elif in_removal:
             continue
         result.append(x)
-    return '\n'.join(result)
+    return "\n".join(result)
+
 
 def fix_missing_static(contents, funcname):
     result = []
     lines = contents.splitlines()
     for i, x in enumerate(lines):
         if x.startswith(funcname + "(") and lines[i - 1] == "void":
-            result[i - 1] = 'static ' + result[i - 1]
+            result[i - 1] = "static " + result[i - 1]
         result.append(x)
     return "\n".join(result)
 
@@ -299,7 +301,7 @@ def staticize_targets(contents):
 def staticize_prototypes(contents):
     result = []
     for line in contents.splitlines():
-        if line.startswith('void parse(FILE'):
+        if line.startswith("void parse(FILE"):
             continue
         if (
             line.startswith("void ")
@@ -357,6 +359,11 @@ def main():
 #else
 #define LQ_NO_RETURN __attribute__((noreturn))
 #endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 """
         )
 
@@ -398,21 +405,27 @@ def main():
             if file == "parse.c":
                 contents = staticize_parse_data(contents)
 
-            if file == 'amd64/targ.c':
-                contents = contents.replace('Amd64Op amd64_op', 'static Amd64Op amd64_op')
+            if file == "amd64/targ.c":
+                contents = contents.replace(
+                    "Amd64Op amd64_op", "static Amd64Op amd64_op"
+                )
 
-            if file == 'amd64/sysv.c':
-                contents = contents.replace('int amd64_sysv_rsave', 'static int amd64_sysv_rsave')
-                contents = contents.replace('int amd64_sysv_rclob', 'static int amd64_sysv_rclob')
+            if file == "amd64/sysv.c":
+                contents = contents.replace(
+                    "int amd64_sysv_rsave", "static int amd64_sysv_rsave"
+                )
+                contents = contents.replace(
+                    "int amd64_sysv_rclob", "static int amd64_sysv_rclob"
+                )
 
-            if file == 'arm64/targ.c':
-                contents = contents.replace('int arm64_rsave', 'static int arm64_rsave')
-                contents = contents.replace('int arm64_rclob', 'static int arm64_rclob')
+            if file == "arm64/targ.c":
+                contents = contents.replace("int arm64_rsave", "static int arm64_rsave")
+                contents = contents.replace("int arm64_rclob", "static int arm64_rclob")
 
-            if file == 'rv64/targ.c':
-                contents = contents.replace('Rv64Op rv64_op', 'static Rv64Op rv64_op')
-                contents = contents.replace('int rv64_rsave', 'static int rv64_rsave')
-                contents = contents.replace('int rv64_rclob', 'static int rv64_rclob')
+            if file == "rv64/targ.c":
+                contents = contents.replace("Rv64Op rv64_op", "static Rv64Op rv64_op")
+                contents = contents.replace("int rv64_rsave", "static int rv64_rsave")
+                contents = contents.replace("int rv64_rclob", "static int rv64_rclob")
 
             if file.endswith("all.h"):
                 contents = staticize_prototypes(contents)
@@ -421,39 +434,57 @@ def main():
                 contents = abi_renames(ns, contents)
 
             if file == "main.c":
-                contents = remove_function(contents, 'int', 'main')
-                contents = remove_lines_range(contents, 'static Target *tlist', '};')
+                contents = remove_function(contents, "int", "main")
+                contents = remove_lines_range(contents, "static Target *tlist", "};")
 
             if file == "parse.c":
-                contents = remove_function(contents, 'void', 'parse')
-                contents = remove_function(contents, 'static void', 'qbe_parse_parsedatref')
-                contents = remove_function(contents, 'static void', 'qbe_parse_parsedat')
-                contents = remove_function(contents, 'static void', 'qbe_parse_parsetyp')
-                contents = remove_function(contents, 'static void', 'qbe_parse_parsedatstr')
-                contents = remove_function(contents, 'static void', 'qbe_parse_parsefields')
-                contents = remove_function(contents, 'static void', 'qbe_parse_expect')
-                contents = remove_function(contents, 'static Blk *', 'qbe_parse_findblk')
-                contents = remove_function(contents, 'static PState', 'qbe_parse_parseline')
-                contents = remove_function(contents, 'static int', 'qbe_parse_parselnk')
-                contents = remove_function(contents, 'static int', 'qbe_parse_nextnl')
-                contents = remove_function(contents, 'static int', 'qbe_parse_next')
-                contents = remove_function(contents, 'static int', 'qbe_parse_peek')
-                contents = remove_function(contents, 'static int', 'qbe_parse_lex')
-                contents = remove_function(contents, 'static int64_t', 'qbe_parse_getint')
-                contents = remove_function(contents, 'static int', 'qbe_parse_parserefl')
-                contents = remove_function(contents, 'static int', 'qbe_parse_findtyp')
-                contents = remove_function(contents, 'static int', 'qbe_parse_parsecls')
-                contents = remove_function(contents, 'static Ref', 'qbe_parse_parseref')
-                contents = remove_function(contents, 'static Fn *', 'qbe_parse_parsefn')
-                contents = remove_function(contents, 'static void', 'qbe_parse_lexinit')
-                contents = remove_data(contents, 'static uint ntyp;')
-                contents = remove_data(contents, 'static int nblk;')
-                contents = remove_data(contents, 'static FILE *inf;')
-                contents = remove_data(contents, 'static Blk *blkh')
-                contents = remove_data(contents, 'static int thead;')
-                contents = remove_data(contents, 'static uchar lexh')
-                contents = remove_lines_range(contents, 'static struct {', '} tokval;')
-                contents = remove_lines_range(contents, 'static char *kwmap', '};')
+                contents = remove_function(contents, "void", "parse")
+                contents = remove_function(
+                    contents, "static void", "qbe_parse_parsedatref"
+                )
+                contents = remove_function(
+                    contents, "static void", "qbe_parse_parsedat"
+                )
+                contents = remove_function(
+                    contents, "static void", "qbe_parse_parsetyp"
+                )
+                contents = remove_function(
+                    contents, "static void", "qbe_parse_parsedatstr"
+                )
+                contents = remove_function(
+                    contents, "static void", "qbe_parse_parsefields"
+                )
+                contents = remove_function(contents, "static void", "qbe_parse_expect")
+                contents = remove_function(
+                    contents, "static Blk *", "qbe_parse_findblk"
+                )
+                contents = remove_function(
+                    contents, "static PState", "qbe_parse_parseline"
+                )
+                contents = remove_function(contents, "static int", "qbe_parse_parselnk")
+                contents = remove_function(contents, "static int", "qbe_parse_nextnl")
+                contents = remove_function(contents, "static int", "qbe_parse_next")
+                contents = remove_function(contents, "static int", "qbe_parse_peek")
+                contents = remove_function(contents, "static int", "qbe_parse_lex")
+                contents = remove_function(
+                    contents, "static int64_t", "qbe_parse_getint"
+                )
+                contents = remove_function(
+                    contents, "static int", "qbe_parse_parserefl"
+                )
+                contents = remove_function(contents, "static int", "qbe_parse_findtyp")
+                contents = remove_function(contents, "static int", "qbe_parse_parsecls")
+                contents = remove_function(contents, "static Ref", "qbe_parse_parseref")
+                contents = remove_function(contents, "static Fn *", "qbe_parse_parsefn")
+                contents = remove_function(contents, "static void", "qbe_parse_lexinit")
+                contents = remove_data(contents, "static uint ntyp;")
+                contents = remove_data(contents, "static int nblk;")
+                contents = remove_data(contents, "static FILE *inf;")
+                contents = remove_data(contents, "static Blk *blkh")
+                contents = remove_data(contents, "static int thead;")
+                contents = remove_data(contents, "static uchar lexh")
+                contents = remove_lines_range(contents, "static struct {", "} tokval;")
+                contents = remove_lines_range(contents, "static char *kwmap", "};")
 
             contents = replace_noreturn(contents)
 
@@ -482,6 +513,15 @@ def main():
                 amalg.write("\n")
             amalg.write("/*** END FILE: %s ***/\n" % file)
 
+        amalg.write(
+            """\
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
+"""
+        )
+
     with open("libqbe.in.h", "r", newline="\n") as header_in:
         header_contents = header_in.read()
 
@@ -492,21 +532,49 @@ def main():
     with open("libqbe.h", "w", newline="\n") as header_out:
         header_out.write(header_contents)
 
-    if sys.platform == 'linux':
-        subprocess.check_call(['gcc', '-Wall', '-Wextra', '-Werror', '-c', 'libqbe.c'])
-        subprocess.check_call(['clang', '-Wall', '-Wextra', '-Werror', '-c', 'libqbe.c'])
-        symsp = subprocess.run(['readelf', '-s', 'libqbe.o'], capture_output=True)
-        os.remove('libqbe.o')
-        syms = str(symsp.stdout, encoding='utf-8').splitlines()
-        syms = [l for l in syms if 'GLOBAL ' in l]
-        syms = [l for l in syms if 'UND ' not in l]
-        print('These are the global exported symbols from libqbe.o,')
-        print('check that they match libqbe.h (only).')
-        print('-'*80)
+    if sys.platform == "win32":
+        subprocess.check_call(
+            ["cl", "/D_CRT_SECURE_NO_WARNINGS", "/nologo", "/W4", "/WX", "libqbe.c"]
+        )
+        os.remove("libqbe.obj")
+    elif sys.platform == "linux":
+        # Check we can build with gcc and clang
+        subprocess.check_call(["gcc", "-Wall", "-Wextra", "-Werror", "-c", "libqbe.c"])
+        subprocess.check_call(
+            ["clang", "-Wall", "-Wextra", "-Werror", "-c", "libqbe.c"]
+        )
+        # And can link from C++.
+        subprocess.check_call(
+            [
+                "clang++",
+                "-Wall",
+                "-Wextra",
+                "-Werror",
+                "libqbe.o",
+                "in_cpp_link_test.cc",
+                "-o",
+                "in_cpp",
+            ]
+        )
+        # And that the the only exported symbols from libqbe are those we expect
+        # (prefixed by `lq_`).
+        symsp = subprocess.run(["readelf", "-s", "libqbe.o"], capture_output=True)
+        os.remove("libqbe.o")
+        os.remove("in_cpp")
+        syms = str(symsp.stdout, encoding="utf-8").splitlines()
+        syms = [l for l in syms if "GLOBAL " in l]
+        syms = [l for l in syms if "UND " not in l]
+        for s in syms:
+            symname = s.split()[-1]
+            if not symname.startswith('lq_'):
+                print('Unexpected symbol:', symname)
+                sys.exit(1)
+        print("These are the global exported symbols from libqbe.o. They look ok, but")
+        print("confirm that they match libqbe.h (only).")
+        print("-" * 80)
         for s in syms:
             print(s)
-        print('-'*80)
-
+        print("-" * 80)
 
 
 if __name__ == "__main__":
