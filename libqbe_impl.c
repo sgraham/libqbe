@@ -119,11 +119,11 @@ LqLinkage lq_linkage_export(void) {
 MAKESURE(ref_sizes_match, sizeof(LqRef) == sizeof(Ref));
 MAKESURE(ref_has_expected_size, sizeof(uint32_t) == sizeof(Ref));
 
-Ref _lqref_to_internal_ref(LqRef ref) {
+static Ref _lqref_to_internal_ref(LqRef ref) {
   return *(Ref*)&ref.u;
 }
 
-LqRef _internal_ref_to_lqref(Ref ref) {
+static LqRef _internal_ref_to_lqref(Ref ref) {
   return *(LqRef*)&ref;
 }
 

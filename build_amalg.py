@@ -215,6 +215,16 @@ def remove_entry_point(contents):
     raise
 
 
+def fix_missing_static(contents, funcname):
+    result = []
+    lines = contents.splitlines()
+    for i, x in enumerate(lines):
+        if x.startswith(funcname + "(") and lines[i - 1] == "void":
+            x = "static " + x
+        result.append(x)
+    return "\n".join(result)
+
+
 def staticize_prototypes(contents):
     result = []
     for line in contents.splitlines():
@@ -227,6 +237,7 @@ def staticize_prototypes(contents):
             or line.startswith("bits ")
             or line.startswith("Ins *")
             or line.startswith("Ref ")
+            or line.startswith("Blk *")
         ) and line.endswith(");"):
             line = "static " + line
         result.append(line)
@@ -291,6 +302,12 @@ def main():
 
             if file.endswith("/emit.c"):
                 contents = emit_renames(ns, contents)
+
+            if file == "emit.c":  # This should be fixed upstream.
+                contents = fix_missing_static(contents, "emitlnk")
+
+            if file == "cfg.c":  # This should be fixed upstream.
+                contents = fix_missing_static(contents, "multloop")
 
             if file.endswith("all.h"):
                 contents = staticize_prototypes(contents)
