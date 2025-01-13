@@ -537,11 +537,13 @@ extern "C" {
             ["cl", "/D_CRT_SECURE_NO_WARNINGS", "/nologo", "/W4", "/WX", "libqbe.c"]
         )
         os.remove("libqbe.obj")
+        print("win32 build ok")
     elif sys.platform == "darwin":
         subprocess.check_call(
             ["clang", "-Wall", "-Wextra", "-Werror", "-c", "libqbe.c"]
         )
         os.remove("libqbe.o")
+        print("darwin build ok")
     elif sys.platform == "linux":
         # Check we can build with gcc and clang
         subprocess.check_call(["gcc", "-Wall", "-Wextra", "-Werror", "-c", "libqbe.c"])
@@ -580,6 +582,7 @@ extern "C" {
         for s in syms:
             print(s)
         print("-" * 80)
+    print("libqbe.[ch] ready for distribution")
 
 
 if __name__ == "__main__":
