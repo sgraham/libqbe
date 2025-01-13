@@ -103,7 +103,7 @@ void lq_func_start(LqLinkage linkage, LqType return_type, const char* name);
 LqRef lq_func_param_named(LqType type, const char* name);
 
 LqBlock lq_block_declare_named(const char* name);
-#define lq_block_declare() lq_block_declare_named("")
+#define lq_block_declare() lq_block_declare_named(NULL)
 
 void lq_block_start_previously_declared(LqBlock block);
 

@@ -182,9 +182,9 @@ def make_instr_prototypes(ops_h_contents):
         lhs = "".join(toks[1:5])
         rhs = "".join(toks[5:9])
         if rhs == "xxxx":
-            ret += "void lq_i_%s(LqRef lhs /*%s*/);\n" % (op, "".join(lhs))
+            ret += "LqRef lq_i_%s(LqType size_class, LqRef lhs /*%s*/);\n" % (op, "".join(lhs))
         else:
-            ret += "void lq_i_%s(LqRef lhs /*%s*/, LqRef rhs /*%s*/);\n" % (
+            ret += "LqRef lq_i_%s(LqType size_class, LqRef lhs /*%s*/, LqRef rhs /*%s*/);\n" % (
                 op,
                 "".join(lhs),
                 "".join(rhs),

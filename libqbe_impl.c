@@ -16,7 +16,18 @@ typedef enum LqInitStatus {
 } LqInitStatus;
 static LqInitStatus lq_initialized;
 
-static uint lq_ntyp;
+static uint _ntyp;
+
+static int _dbg_name_counter;
+
+static void _gen_dbg_name(char* into, const  char* prefix) {
+  sprintf(into, "%s_%d", prefix ? prefix : "", _dbg_name_counter++);
+}
+
+#define LQ_NAMED_IF_DEBUG(into, provided) \
+  if (dbg) {                              \
+    _gen_dbg_name(into, provided);        \
+  }
 
 static void err(char* s, ...) {
   va_list args;
@@ -41,7 +52,7 @@ LqLinkage lq_linkage_create(int alignment,
       .export = exported,
       .thread = tls,
       .common = common,
-      .align = alignment,  // TODO: i think this is wrong
+      .align = alignment,
       .sec = (char*)section_name,
       .secf = (char*)section_flags,
   };
@@ -52,8 +63,36 @@ static Lnk* _linkage_to_internal_lnk(LqLinkage linkage) {
   return &_linkage_arena[linkage.u];
 }
 
+MAKESURE(ref_sizes_match, sizeof(LqRef) == sizeof(Ref));
+MAKESURE(ref_has_expected_size, sizeof(uint32_t) == sizeof(Ref));
+
+static Ref _lqref_to_internal_ref(LqRef ref) {
+  Ref ret;
+  memcpy(&ret, &ref, sizeof(Ref));
+  return ret;
+}
+
+static LqRef _internal_ref_to_lqref(Ref ref) {
+  LqRef ret;
+  memcpy(&ret, &ref, sizeof(Ref));
+  return ret;
+}
+
+static int _lqtype_to_cls_and_ty(LqType type, int* ty) {
+  LQ_ASSERT(type.u != LQ_TYPE_C);
+  if (type.u > LQ_TYPE_0) {
+    *ty = type.u;
+    return LQ_TYPE_C;
+  } else {
+    *ty = 0;
+    return type.u;
+  }
+}
+
 void lq_init(LqTarget target, FILE* output, const char* debug_names) {
   LQ_ASSERT(lq_initialized == LQIS_UNINITIALIZED);
+
+  _dbg_name_counter = 0;
 
   _num_linkages = 0;
   // These have to match the header for lq_linkage_default/export.
@@ -114,11 +153,12 @@ void lq_init(LqTarget target, FILE* output, const char* debug_names) {
 
   outf = output;
 
+  memset(debug, 0, sizeof(debug));
   for (const char* d = debug_names; *d; ++d) {
     debug[(int)*d] = 1;
   }
 
-  lq_ntyp = 0;
+  _ntyp = 0;
   typ = vnew(0, sizeof(typ[0]), PHeap);
 
   dbg = debug_names[0] != 0;
@@ -160,31 +200,28 @@ void lq_func_start(LqLinkage linkage, LqType return_type, const char* name) {
   curf->leaf = 1;
   blink = &curf->start;
   curf->retty = Kx;
-  rcls = return_type.u;
-  LQ_ASSERT(return_type.u != LQ_TYPE_C);
-  if (return_type.u > LQ_TYPE_0) {
-    curf->retty = return_type.u;
-    rcls = LQ_TYPE_C;
-  }
+  rcls = _lqtype_to_cls_and_ty(return_type, &curf->retty);
   strncpy(curf->name, name, NString - 1);
   _ps = PLbl;
 
   lq_block_start();
 }
 
-MAKESURE(ref_sizes_match, sizeof(LqRef) == sizeof(Ref));
-MAKESURE(ref_has_expected_size, sizeof(uint32_t) == sizeof(Ref));
-
-static Ref _lqref_to_internal_ref(LqRef ref) {
-  Ref ret;
-  memcpy(&ret, &ref, sizeof(Ref));
-  return ret;
-}
-
-static LqRef _internal_ref_to_lqref(Ref ref) {
-  LqRef ret;
-  memcpy(&ret, &ref, sizeof(Ref));
-  return ret;
+LqRef lq_func_param_named(LqType type, const char* name) {
+  int ty;
+  int k = _lqtype_to_cls_and_ty(type, &ty);
+  Ref r = newtmp(0, k, curf);
+  LQ_NAMED_IF_DEBUG(curf->tmp[r.val].name, name);
+  // TODO: env ptr
+  if (k == Kc) {
+    *curi = (Ins){Oparc, Kl, r, {TYPE(ty)}};
+  } else if (k >= Ksb) {
+    *curi = (Ins){Oparsb + (k - Ksb), Kw, r, {R}};
+  } else {
+    *curi = (Ins){Opar, k, r, {R}};
+  }
+  ++curi;
+  return _internal_ref_to_lqref(r);
 }
 
 #if 0
@@ -231,25 +268,6 @@ LqRef lq_const_double(double d) {
   return _internal_ref_to_lqref(newcon(&c, curf));
 }
 
-void lq_i_ret(LqRef val) {
-  curb->jmp.type = Jretw + rcls;
-  if (val.u == 0) {
-    curb->jmp.type = Jret0;
-  } else if (rcls != K0) {
-    Ref r = _lqref_to_internal_ref(val);
-    if (req(r, R)) {
-      err("invalid return value");
-    }
-    curb->jmp.arg = r;
-  }
-  qbe_parse_closeblk();
-  _ps = PLbl;
-}
-
-void lq_i_ret_void(void) {
-  lq_i_ret((LqRef){0});  // TODO: not sure if this is correct == {RTmp, 0}.
-}
-
 LqRef lq_func_end(void) {
   if (!curb) {
     err("empty function");
@@ -277,7 +295,7 @@ LqBlock lq_block_declare_named(const char* name) {
   Blk* blk = &_block_arena[ret.u];
   memset(blk, 0, sizeof(Blk));
   blk->id = ret.u;
-  strcpy(blk->name, name);
+  LQ_NAMED_IF_DEBUG(blk->name, name);
   return ret;
 }
 
@@ -301,6 +319,46 @@ LqBlock lq_block_start_named(const char* name) {
   LqBlock new = lq_block_declare_named(name);
   lq_block_start_previously_declared(new);
   return new;
+}
+
+void lq_i_ret(LqRef val) {
+  LQ_ASSERT(_ps == PIns || _ps == PPhi);
+  curb->jmp.type = Jretw + rcls;
+  if (val.u == 0) {
+    curb->jmp.type = Jret0;
+  } else if (rcls != K0) {
+    Ref r = _lqref_to_internal_ref(val);
+    if (req(r, R)) {
+      err("invalid return value");
+    }
+    curb->jmp.arg = r;
+  }
+  qbe_parse_closeblk();
+  _ps = PLbl;
+}
+
+void lq_i_ret_void(void) {
+  lq_i_ret((LqRef){0});  // TODO: not sure if this is correct == {RTmp, 0}.
+}
+
+LqRef _normal_two_op_instr(int op, LqType size_class, LqRef arg0, LqRef arg1) {
+  LQ_ASSERT(size_class.u >= LQ_TYPE_W && size_class.u <= LQ_TYPE_D);
+  LQ_ASSERT(_ps == PIns || _ps == PPhi);
+  LQ_ASSERT(curi - insb < NIns);
+  Ref tmp = newtmp(NULL, Kx, curf);
+  LQ_NAMED_IF_DEBUG(curf->tmp[tmp.val].name, NULL);
+  curi->op = op;
+  curi->cls = size_class.u;  // TODO: unclear on how =:Struct happens in calls
+  curi->to = tmp;
+  curi->arg[0] = _lqref_to_internal_ref(arg0);
+  curi->arg[1] = _lqref_to_internal_ref(arg1);
+  ++curi;
+  _ps = PIns;
+  return _internal_ref_to_lqref(tmp);
+}
+
+LqRef lq_i_add(LqType size_class, LqRef lhs, LqRef rhs) {
+  return _normal_two_op_instr(Oadd, size_class, lhs, rhs);
 }
 
 #if 0

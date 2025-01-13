@@ -16,14 +16,15 @@ data $fmt = { b "One and one make %d!\n", b 0 }
 */
 
 void compile(void) {
-#if 0
-  lq_func_start(lq_linkage_default, lq_type_word(), "add");
-  LqRef a = lq_func_param(lq_type_word());
-  Lqref b = lq_func_param(lq_type_word());
-  LqRef c = lq_i_add(LQ_TYPE_W, a, b);
+  lq_func_start(lq_linkage_default, lq_type_word, "add");
+  LqRef a = lq_func_param(lq_type_word);
+  LqRef b = lq_func_param(lq_type_word);
+  LqRef c = lq_i_add(lq_type_word, a, b);
   lq_i_ret(c);
-  LqRef add_func = lq_end_func();
+  LqRef add_func = lq_func_end();
+  (void)add_func;
 
+#if 0
   lq_data_start(lq_linkage_default, "fmt");
   lq_data_string("One and one make %d!\n");
   lq_data_byte(0);
@@ -36,9 +37,6 @@ void compile(void) {
   lq_i_ret(lq_const_word(0));
   LqRef main = lq_func_end();
 #endif
-  lq_func_start(lq_linkage_default, lq_type_word, "add");
-  lq_i_ret_void();
-  lq_func_end();
 
   lq_func_start(lq_linkage_export, lq_type_word, "main");
   lq_i_ret(lq_const_int(4));
