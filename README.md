@@ -19,14 +19,21 @@ order to make the code suitable for linking into other C programs without
 polluting the global namespace, it's preprocessed by `build_amalg.py` (a bunch
 of janky regex hacks in a trench coat) to rename and static-ize symbols. A
 script to amalgamate-and-rename is used instead of just directly renaming
-symbols in the code to (hopefully) make ongoing integration of upstream QBE more
-straightforward.
+symbols in the code and carrying a set of patches to (hopefully) make ongoing
+integration of upstream QBE more straightforward.
 
 libqbe.h then presents an externally-visible interface to the code (amalgamated
 into libqbe.c). So, in order to use libqbe in your project, you need build only
 libqbe.c (which does no `#include`s beyond the standard C library), and write
 your front end against libqbe.h.
 
+## Warning
+
+**It is quite possible that I have introduced bugs in this packaging. If you use
+this library, and encounter a bug in code generation, please be sure to
+reproduce the bug in "plain" QBE before engaging the QBE mailing list.** You can
+use the `debug_flags` of `lq_init()` to emit textual QBE input that can be fed
+to the standard command line tool if necessary.
 
 ## Tutorial
 
