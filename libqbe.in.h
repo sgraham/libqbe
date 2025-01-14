@@ -108,8 +108,8 @@ LqRef lq_extern(const char* name);
 #define lq_func_param(type) lq_func_param_named(type, NULL)
 LqRef lq_func_param_named(LqType type, const char* name);
 
-LqBlock lq_block_declare_named(const char* name);
 #define lq_block_declare() lq_block_declare_named(NULL)
+LqBlock lq_block_declare_named(const char* name);
 
 void lq_block_start_previously_declared(LqBlock block);
 
@@ -162,13 +162,10 @@ LqRef _lq_i_call_implv(bool is_varargs, int num_args, LqType result, LqRef func,
 #define lq_i_call_varargs(result_type, ...) \
   _lq_i_call_implv(/*va=*/true, LQ_NARGS(__VA_ARGS__), result_type, __VA_ARGS__)
 
-LqType lq_type_start_struct(const char* name, int align /*=0*/);
-LqType lq_type_start_union(const char* name, int align);
-void lq_type_add_field(LqType type, LqType field);
-void lq_type_add_field_with_count(LqType type, LqType field, uint32_t count);
-LqType lq_type_end(void);
-
-LqType lq_make_type_opaque(const char* name, int align, int size);
+void lq_type_struct_start(const char* name, int align /*=0*/);
+void lq_type_add_field(LqType field);
+void lq_type_add_field_with_count(LqType field, uint32_t count);
+LqType lq_type_struct_end(void);
 
 #ifdef __cplusplus
 }  // extern "C"

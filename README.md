@@ -59,7 +59,20 @@ int main(void) {
 
 For a slightly more involved example, see `hello.c`.
 
+## TODO
+
+- protos for all normal instrs
+- jmp/jnz
+- type_start/type_end
+- lq_data_ref (with offset)
+- debug info
+- unions
+- opaque types
+- github workflow to check various compilers, and build a 'release'
+
 ## Future plans
+
+Long term than the TODOs above which are just filling out the existing API:
 
 - The output of the library is identical to the command line tool (i.e. input
   suitable for `as`. I plan to have libqbe emit other formats in the future.
@@ -71,9 +84,3 @@ For a slightly more involved example, see `hello.c`.
   lexically "active" at a time. It would be nice to be able to define multiple
   functions simultaneously, but the tradeoff is divergence from the original
   codebase and probably a more verbose API style.
-
-## TODO
-
-- protos for all normal instrs
-- jmp/jnz
-- type_start/type_end

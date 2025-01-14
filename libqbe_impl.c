@@ -18,6 +18,7 @@ typedef enum LqInitStatus {
 static LqInitStatus lq_initialized;
 
 static uint _ntyp;
+static Typ* _curty;
 
 static int _dbg_name_counter;
 
@@ -604,44 +605,35 @@ LqSymbol lq_data_end(void) {
   return ret;
 }
 
-#if 0
-LqType lq_begin_type_struct(const char *name, int align) {
-  Typ *ty;
-  int t, al;
-  uint n;
+void lq_type_struct_start(const char *name, int align) {
+  // TODO: I don't understand why parsetyp counts the bits in alignment here,
+  // vs. direct use in func/data, need to test more.
+  LQ_ASSERT(align == 0 && "non-default alignment not implemented");
 
-  LqType ret = {ntyp};
-  vgrow(&typ, ntyp + 1);
-  ty = &typ[ntyp++];
-  ty->isdark = 0;
-  ty->isunion = 0;
-  ty->align = -1;
-  ty->size = 0;
-  strcpy(ty->name, name);
-  if (align != 0) {
-    for (al = 0; align /= 2; al++)
-      ;
-    ty->align = al;
-  }
-  n = 0;
-  ty->fields = vnew(1, sizeof ty->fields[0], PHeap);
-  return ret;
+  vgrow(&typ, _ntyp + 1);
+  _curty = &typ[_ntyp++];
+  _curty->isdark = 0;
+  _curty->isunion = 0;
+  _curty->align = -1;
+  _curty->size = 0;
+  strcpy(_curty->name, name);
+  _curty->fields = vnew(1, sizeof _curty->fields[0], PHeap);
+  _curty->nunion = 1;
 }
 
-void lq_type_add_field_with_count(LqType type, LqType field, uint32_t count) {
-#  if 0
-  Typ *ty1;
-  int n, a, al, type;
-  uint64_t sz, s;
+void lq_type_add_field_with_count(LqType field, uint32_t count) {
+  (void)field;
+  (void)count;
+#if 0
+  Field* fld = _curty->fields[0];
 
-  Typ *ty = &typ[type.u];
-  n = 0;
-  sz = 0;
-  al = ty->align;
+  int  n = 0;
+  uint64_t sz = 0;
+  int al = _curty->align;
 
-  ty1 = &typ[field.u];
-  s = ty1->size;
-  a = ty1->align;
+  Typ* ty1 = &typ[field.u];
+  uint64_t s = ty1->size;
+  int a = ty1->align;
 
   if (a > al)
     al = a;
@@ -662,14 +654,14 @@ void lq_type_add_field_with_count(LqType type, LqType field, uint32_t count) {
     fld[n].type = type;
     fld[n].len = s;
   }
-#  endif
+#endif
 }
-void lq_type_add_field(LqType type, LqType field) {
-  lq_type_add_field_with_count(type, field, 1);
+void lq_type_add_field(LqType field) {
+  lq_type_add_field_with_count(field, 1);
 }
 
-void lq_end_type(LqType type) {
-#  if 0
+LqType lq_end_type(void) {
+#if 0
   fld[n].type = FEnd;
   a = 1 << al;
   if (sz < ty->size) {
@@ -677,10 +669,8 @@ void lq_end_type(LqType type) {
   }
   ty->size = (sz + a - 1) & ~a;
   ty->align = al;
-#  endif
-}
-
-LqType lq_make_type_opaque(const char *name, int align, int size) {
-  abort();
-}
 #endif
+  LqType ret = {_curty - typ};
+  _curty = NULL;
+  return ret;
+}
