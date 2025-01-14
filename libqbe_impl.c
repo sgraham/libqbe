@@ -84,7 +84,7 @@ static int _lqtype_to_cls_and_ty(LqType type, int* ty) {
     *ty = type.u;
     return LQ_TYPE_C;
   } else {
-    *ty = 0;
+    *ty = Kx;
     return type.u;
   }
 }
@@ -199,7 +199,6 @@ void lq_func_start(LqLinkage linkage, LqType return_type, const char* name) {
   curf->lnk = *lnk;
   curf->leaf = 1;
   blink = &curf->start;
-  curf->retty = Kx;
   rcls = _lqtype_to_cls_and_ty(return_type, &curf->retty);
   strncpy(curf->name, name, NString - 1);
   _ps = PLbl;
@@ -445,7 +444,7 @@ LqRef _normal_two_op_instr(int op, LqType size_class, LqRef arg0, LqRef arg1) {
   Ref tmp = newtmp(NULL, Kx, curf);
   LQ_NAMED_IF_DEBUG(curf->tmp[tmp.val].name, NULL);
   curi->op = op;
-  curi->cls = size_class.u;  // TODO: unclear on how =:Struct happens in calls
+  curi->cls = size_class.u;
   curi->to = tmp;
   curi->arg[0] = _lqref_to_internal_ref(arg0);
   curi->arg[1] = _lqref_to_internal_ref(arg1);

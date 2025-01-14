@@ -51,7 +51,7 @@ int main(void) {
 #endif
 
   printf("---------- COMPILED FOR AMD64_SYSV FOLLOWS  ----------\n");
-  lq_init(LQ_TARGET_AMD64_SYSV, stdout, "PMNCFAILSR");
+  lq_init(LQ_TARGET_AMD64_SYSV, stdout, "");
   compile();
   lq_shutdown();
 }
