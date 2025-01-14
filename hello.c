@@ -41,8 +41,8 @@ void compile(void) {
   LqRef b = lq_func_param(lq_type_word);
 
   LqRef c = lq_i_add(lq_type_word, a, b);  // Adds the 2 arguments.
-  lq_i_ret(c);  // Return the result.
-  LqSymbol add_func = lq_func_end();  // Get a symbol for the created function.
+  lq_i_ret(c);                             // Return the result.
+  LqSymbol add_func = lq_func_end();       // Get a symbol for the created function.
 
   // Create a data item for the string we're going to pass to printf.
   lq_data_start(lq_linkage_default, "fmt");
@@ -53,7 +53,7 @@ void compile(void) {
   lq_func_start(lq_linkage_export, lq_type_word, "main");  // Main function.
   LqRef r = lq_i_call(lq_type_word, lq_ref_for_symbol(add_func),
                       lq_type_word, lq_const_int(1),
-                      lq_type_word, lq_const_int(1));  // Call add(1, 1).
+                      lq_type_word, lq_const_int(1));      // Call add(1, 1).
 
   LqRef printf_func = lq_extern("printf");
   lq_i_call_varargs(lq_type_word, printf_func,

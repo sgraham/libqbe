@@ -171,23 +171,36 @@ def make_instr_prototypes(ops_h_contents):
         if x.startswith("O("):
             external_only.append(x)
 
-    ret = ""
+    def is_no_return(op):
+        # Also blit and call, but those are handled specially and aren't in the
+        # public section of ops.h.
+        return op == "vastart" or op.startswith("store")
+
+    decls = ""
+    defns = ""
     for op in external_only:
         assert op.startswith("O(")
         toks = re.split("[ \t,T()]+", op[2:])
         op = toks[0]
-        lhs = "".join(toks[1:5])
-        rhs = "".join(toks[5:9])
-        if rhs == "xxxx":
-            ret += "LqRef lq_i_%s(LqType size_class, LqRef lhs /*%s*/);\n" % (op, "".join(lhs))
+        arg0 = "".join(toks[1:5])
+        arg1 = "".join(toks[5:9])
+        if arg1 == "xxxx":
+            # No non-return single arg ops.
+            proto = "LqRef lq_i_%s(LqType size_class, LqRef arg0 /*%s*/)" % (op, "".join(arg0))
+            decls += proto + ";\n"
+            defns += proto + " { return _normal_one_op_instr(O%s, size_class, arg0); }\n" % op
         else:
-            ret += "LqRef lq_i_%s(LqType size_class, LqRef lhs /*%s*/, LqRef rhs /*%s*/);\n" % (
-                op,
-                "".join(lhs),
-                "".join(rhs),
-            )
+            if is_no_return(op):
+                proto = "void lq_i_%s(LqRef arg0 /*%s*/, LqRef arg1 /*%s*/)" % (
+                        op, "".join(arg0), "".join(arg1))
+                defns += proto + " { _normal_two_op_void_instr(O%s, arg0, arg1); }\n" % op
+            else:
+                proto = "LqRef lq_i_%s(LqType size_class, LqRef arg0 /*%s*/, LqRef arg1 /*%s*/)" % (
+                        op, "".join(arg0), "".join(arg1))
+                defns += proto + " { return _normal_two_op_instr(O%s, size_class, arg0, arg1); }\n" % op
+            decls += proto + ";\n"
 
-    return ret
+    return (decls, defns)
 
 
 def replace_noreturn(contents):
@@ -341,12 +354,16 @@ def main():
         ops_h_contents = f.read()
     with open(os.path.join(QBE_ROOT, "LICENSE"), "r") as f:
         license_contents = f.read()
+
+    instr_decls, instr_defns = make_instr_prototypes(ops_h_contents)
+
     with open("libqbe.c", "w", newline="\n") as amalg:
         amalg.write("/*\n\nQBE LICENSE:\n\n")
         amalg.write(license_contents)
         amalg.write("\n---\n\n")
         amalg.write(
-            "Other libqbe code under the same license written by Scott Graham.\n\n"
+            "All other libqbe code under the same license,\n"
+            "© 2025 Scott Graham <scott.libqbe@h4ck3r.net>\n\n"
         )
         amalg.write("*/\n\n")
         amalg.write(
@@ -553,6 +570,8 @@ def main():
                 amalg.write("\n")
             amalg.write("/*** END FILE: %s ***/\n" % file)
 
+        amalg.write(instr_defns)
+
         amalg.write(
             """\
 
@@ -566,7 +585,7 @@ def main():
         header_contents = header_in.read()
 
     header_contents = header_contents.replace(
-        "%%%INSTRUCTION_DECLARATIONS%%%\n", make_instr_prototypes(ops_h_contents)
+        "%%%INSTRUCTION_DECLARATIONS%%%\n", instr_decls
     )
 
     with open("libqbe.h", "w", newline="\n") as header_out:

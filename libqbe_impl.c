@@ -447,7 +447,7 @@ LqRef _lq_i_call_implv(bool is_varargs, int num_args, LqType result, LqRef func,
   return lq_i_calla(result, func, is_varargs, num_args, types, args);
 }
 
-LqRef _normal_two_op_instr(int op, LqType size_class, LqRef arg0, LqRef arg1) {
+static LqRef _normal_two_op_instr(int op, LqType size_class, LqRef arg0, LqRef arg1) {
   LQ_ASSERT(size_class.u >= LQ_TYPE_W && size_class.u <= LQ_TYPE_D);
   LQ_ASSERT(_ps == PIns || _ps == PPhi);
   LQ_ASSERT(curi - insb < NIns);
@@ -463,8 +463,32 @@ LqRef _normal_two_op_instr(int op, LqType size_class, LqRef arg0, LqRef arg1) {
   return _internal_ref_to_lqref(tmp);
 }
 
-LqRef lq_i_add(LqType size_class, LqRef lhs, LqRef rhs) {
-  return _normal_two_op_instr(Oadd, size_class, lhs, rhs);
+static void _normal_two_op_void_instr(int op, LqRef arg0, LqRef arg1) {
+  LQ_ASSERT(_ps == PIns || _ps == PPhi);
+  LQ_ASSERT(curi - insb < NIns);
+  curi->op = op;
+  curi->cls = LQ_TYPE_W;
+  curi->to = R;
+  curi->arg[0] = _lqref_to_internal_ref(arg0);
+  curi->arg[1] = _lqref_to_internal_ref(arg1);
+  ++curi;
+  _ps = PIns;
+}
+
+static LqRef _normal_one_op_instr(int op, LqType size_class, LqRef arg0) {
+  LQ_ASSERT(size_class.u >= LQ_TYPE_W && size_class.u <= LQ_TYPE_D);
+  LQ_ASSERT(_ps == PIns || _ps == PPhi);
+  LQ_ASSERT(curi - insb < NIns);
+  Ref tmp = newtmp(NULL, Kx, curf);
+  LQ_NAMED_IF_DEBUG(curf->tmp[tmp.val].name, NULL);
+  curi->op = op;
+  curi->cls = size_class.u;
+  curi->to = tmp;
+  curi->arg[0] = _lqref_to_internal_ref(arg0);
+  curi->arg[1] = R;
+  ++curi;
+  _ps = PIns;
+  return _internal_ref_to_lqref(tmp);
 }
 
 void lq_data_start(LqLinkage linkage, const char* name) {
