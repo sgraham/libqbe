@@ -23,19 +23,17 @@ void compile(void) {
   lq_i_ret(c);
   LqFunc add_func = lq_func_end();
 
-#if 0
   lq_data_start(lq_linkage_default, "fmt");
   lq_data_string("One and one make %d!\n");
   lq_data_byte(0);
   LqRef fmt = lq_data_end();
-#endif
 
   lq_func_start(lq_linkage_export, lq_type_word, "main");
-  LqRef r = lq_i_call2(lq_type_word, lq_ref_for_func(add_func), lq_type_word, lq_const_int(1),
-                       lq_type_word, lq_const_int(2));
+  LqRef r = lq_i_call(lq_type_word, lq_ref_for_func(add_func), lq_type_word, lq_const_int(1),
+                      lq_type_word, lq_const_int(2));
   LqRef printf_func = lq_extern("printf");
-  lq_i_call1(lq_type_word, printf_func, lq_type_word, r);
-  lq_i_ret(lq_const_int(0));
+  lq_i_call_varargs(lq_type_word, printf_func, lq_type_word, r);
+  lq_i_ret(lq_const_int(1));
   LqFunc main = lq_func_end();
   (void)main;
 }

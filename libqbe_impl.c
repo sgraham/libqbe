@@ -29,6 +29,13 @@ static void _gen_dbg_name(char* into, const  char* prefix) {
     _gen_dbg_name(into, provided);        \
   }
 
+#define LQ_COUNTOF(a) (sizeof(a)/sizeof(a[0]))
+#define LQ_COUNTOFI(a) ((int)(sizeof(a)/sizeof(a[0])))
+
+#ifdef _MSC_VER
+#define alloca _alloca
+#endif
+
 static void err(char* s, ...) {
   va_list args;
   va_start(args, s);
@@ -46,7 +53,7 @@ LqLinkage lq_linkage_create(int alignment,
                             bool common,
                             const char* section_name,
                             const char* section_flags) {
-  LQ_ASSERT(_num_linkages < (int)(sizeof(_linkage_arena) / sizeof(_linkage_arena[0])));
+  LQ_ASSERT(_num_linkages < LQ_COUNTOFI(_linkage_arena));
   LqLinkage ret = {_num_linkages++};
   _linkage_arena[ret.u] = (Lnk){
       .export = exported,
@@ -311,7 +318,7 @@ LqRef lq_extern(const char* name) {
 }
 
 LqBlock lq_block_declare_named(const char* name) {
-  LQ_ASSERT(_num_blocks < (int)(sizeof(_block_arena) / sizeof(_block_arena[0])));
+  LQ_ASSERT(_num_blocks < LQ_COUNTOFI(_block_arena));
   LqBlock ret = {_num_blocks++};
   Blk* blk = &_block_arena[ret.u];
   memset(blk, 0, sizeof(Blk));
@@ -362,7 +369,17 @@ void lq_i_ret_void(void) {
   lq_i_ret((LqRef){0});  // TODO: not sure if this is correct == {RTmp, 0}.
 }
 
-LqRef lq_i_calla(LqType result, LqRef func, int num_args, LqType* types, LqRef* args) {
+LqRef lq_i_calla(LqType result,
+                 LqRef func,
+                 bool is_varargs,
+                 int num_args,
+                 LqType* types,
+                 LqRef* args) {
+  if (is_varargs) {
+    LQ_ASSERT(curi - insb < NIns);
+    *curi++ = (Ins){.op = Oargv};
+  }
+
   LQ_ASSERT(_ps == PIns || _ps == PPhi);
   // args are inserted into instrs first, then the call
   for (int i = 0; i < num_args; ++i) {
@@ -370,7 +387,7 @@ LqRef lq_i_calla(LqType result, LqRef func, int num_args, LqType* types, LqRef* 
     int ty;
     int k = _lqtype_to_cls_and_ty(types[i], &ty);
     Ref r = _lqref_to_internal_ref(args[i]);
-    // TODO: env, varargs
+    // TODO: env
     if (k == Kc) {
       *curi = (Ins){Oargc, Kl, R, {TYPE(ty), r}};
     } else if (k >= Ksb) {
@@ -407,42 +424,19 @@ LqRef lq_i_calla(LqType result, LqRef func, int num_args, LqType* types, LqRef* 
   return _internal_ref_to_lqref(tmp);
 }
 
-LqRef lq_i_call1(LqType result, LqRef func, LqType type0, LqRef arg0) {
-  return lq_i_calla(result, func, 1, &type0, &arg0);
-}
+LqRef _lq_i_call_implv(bool is_varargs, int num_args, LqType result, LqRef func, ...) {
+  va_list ap;
+  va_start(ap, func);
 
-LqRef lq_i_call2(LqType result, LqRef func, LqType type0, LqRef arg0, LqType type1, LqRef arg1) {
-  LqType types[2] = {type0, type1};
-  LqRef args[2] = {arg0, arg1};
-  return lq_i_calla(result, func, 2, types, args);
-}
-
-LqRef lq_i_call3(LqType result,
-                 LqRef func,
-                 LqType type0,
-                 LqRef arg0,
-                 LqType type1,
-                 LqRef arg1,
-                 LqType type2,
-                 LqRef arg2) {
-  LqType types[3] = {type0, type1, type2};
-  LqRef args[3] = {arg0, arg1, arg2};
-  return lq_i_calla(result, func, 3, types, args);
-}
-
-LqRef lq_i_call4(LqType result,
-                 LqRef func,
-                 LqType type0,
-                 LqRef arg0,
-                 LqType type1,
-                 LqRef arg1,
-                 LqType type2,
-                 LqRef arg2,
-                 LqType type3,
-                 LqRef arg3) {
-  LqType types[4] = {type0, type1, type2, type3};
-  LqRef args[4] = {arg0, arg1, arg2, arg3};
-  return lq_i_calla(result, func, 4, types, args);
+  LQ_ASSERT(num_args < 16);
+  LqType* types = alloca(sizeof(LqType) * num_args);
+  LqRef* args = alloca(sizeof(LqRef) * num_args);
+  for (int i = 0; i < num_args; ++i) {
+    types[i] = va_arg(ap, LqType);
+    args[i] = va_arg(ap, LqRef);
+  }
+  va_end(ap);
+  return lq_i_calla(result, func, is_varargs, num_args, types, args);
 }
 
 LqRef _normal_two_op_instr(int op, LqType size_class, LqRef arg0, LqRef arg1) {
@@ -465,6 +459,10 @@ LqRef lq_i_add(LqType size_class, LqRef lhs, LqRef rhs) {
   return _normal_two_op_instr(Oadd, size_class, lhs, rhs);
 }
 
+#if 0
+void lq_data_start(LqLinkage linkage, const char* name) {
+}
+#endif
 #if 0
 void lq_data_string(const char* str) {
   for (const char* p = str; *p; ++p) {

@@ -123,28 +123,44 @@ void lq_i_ret(LqRef val);
 void lq_i_jmp(LqBlock block);
 void lq_i_jnz(LqRef cond, LqBlock if_true, LqBlock if_false);
 
-LqRef lq_i_calla(LqType result, LqRef func, bool is_varargs, int num_args, LqType* types, LqRef* args);
+LqRef lq_i_calla(LqType result,
+                 LqRef func,
+                 bool is_varargs,
+                 int num_args,
+                 LqType* types,
+                 LqRef* args);
 
-LqRef lq_i_call1(LqType result, LqRef func, LqType type0, LqRef arg0);
-LqRef lq_i_call2(LqType result, LqRef func, LqType type0, LqRef arg0, LqType type1, LqRef arg1);
-LqRef lq_i_call3(LqType result,
-                 LqRef func,
-                 LqType type0,
-                 LqRef arg0,
-                 LqType type1,
-                 LqRef arg1,
-                 LqType type2,
-                 LqRef arg2);
-LqRef lq_i_call4(LqType result,
-                 LqRef func,
-                 LqType type0,
-                 LqRef arg0,
-                 LqType type1,
-                 LqRef arg1,
-                 LqType type2,
-                 LqRef arg2,
-                 LqType type3,
-                 LqRef arg3);
+LqRef _lq_i_call_implv(bool is_varargs, int num_args, LqType result, LqRef func, ...);
+
+#define LQ_EXPAND(x) x
+#define LQ___NARGS(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, VAL, ...) VAL
+#define LQ_NARGS_1(...)                                                                \
+  LQ_EXPAND(LQ___NARGS(__VA_ARGS__, 6, ERROR_UNPAIRED_TYPE_AND_REF, 5,                 \
+                       ERROR_UNPAIRED_TYPE_AND_REF, 4, ERROR_UNPAIRED_TYPE_AND_REF, 3, \
+                       ERROR_UNPAIRED_TYPE_AND_REF, 2, ERROR_UNPAIRED_TYPE_AND_REF, 1, \
+                       ERROR_UNPAIRED_TYPE_AND_REF, 0, ERROR_UNPAIRED_TYPE_AND_REF))
+#define LQ_AUGMENTER(...) unused, __VA_ARGS__
+#define LQ_NARGS(...) LQ_NARGS_1(LQ_AUGMENTER(__VA_ARGS__))
+
+// This is just a helper, so you can write:
+//
+//   lq_i_call(result, func, type0, arg0)
+//
+// or
+//
+//   lq_i_call(result, func, type0, arg0, type1, arg1, type2, arg2)
+//
+// etc. It will compile to a non-existent function if you list a mismatched pair
+// of type/args.
+//
+// Normally, you'll probably want to use lq_i_acall() to pass explicitly built
+// arrays from the front end anyway, but sometimes directly passing the
+// arguments is convenient.
+#define lq_i_call(result_type, ...) \
+  _lq_i_call_implv(LQ_NARGS(__VA_ARGS__), /*va=*/false, result_type, __VA_ARGS__)
+
+#define lq_i_call_varargs(result_type, ...) \
+  _lq_i_call_implv(LQ_NARGS(__VA_ARGS__), /*va=*/true, result_type, __VA_ARGS__)
 
 LqType lq_type_start_struct(const char* name, int align /*=0*/);
 LqType lq_type_start_union(const char* name, int align);
