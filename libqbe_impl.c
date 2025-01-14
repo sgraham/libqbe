@@ -1,3 +1,4 @@
+#line 2 "libqbe_impl.c"
 static PState _ps;
 
 // Blk lifetimes are per-func
@@ -19,6 +20,9 @@ static LqInitStatus lq_initialized;
 static uint _ntyp;
 
 static int _dbg_name_counter;
+
+static Dat _curd;
+static Lnk _curd_lnk;
 
 static void _gen_dbg_name(char* into, const  char* prefix) {
   sprintf(into, "%s_%d", prefix ? prefix : "", _dbg_name_counter++);
@@ -66,8 +70,8 @@ LqLinkage lq_linkage_create(int alignment,
   return ret;
 }
 
-static Lnk* _linkage_to_internal_lnk(LqLinkage linkage) {
-  return &_linkage_arena[linkage.u];
+static Lnk _linkage_to_internal_lnk(LqLinkage linkage) {
+  return _linkage_arena[linkage.u];
 }
 
 MAKESURE(ref_sizes_match, sizeof(LqRef) == sizeof(Ref));
@@ -182,8 +186,8 @@ void lq_shutdown(void) {
 }
 
 void lq_func_start(LqLinkage linkage, LqType return_type, const char* name) {
-  Lnk* lnk = _linkage_to_internal_lnk(linkage);
-  lnk->align = 16;
+  Lnk lnk = _linkage_to_internal_lnk(linkage);
+  lnk.align = 16;
 
   curb = 0;
   _num_blocks = 0;
@@ -203,7 +207,7 @@ void lq_func_start(LqLinkage linkage, LqType return_type, const char* name) {
   curf->con[0].type = CBits;
   curf->con[0].bits.i = 0xdeaddead; /* UNDEF */
   curf->con[1].type = CBits;
-  curf->lnk = *lnk;
+  curf->lnk = lnk;
   curf->leaf = 1;
   blink = &curf->start;
   rcls = _lqtype_to_cls_and_ty(return_type, &curf->retty);
@@ -274,10 +278,10 @@ LqRef lq_const_double(double d) {
   return _internal_ref_to_lqref(newcon(&c, curf));
 }
 
-// This has to return a LqFunc that's the name that we re-lookup on use rather
+// This has to return a LqSymbol that's the name that we re-lookup on use rather
 // than directly a Ref because Con Refs are stored per function (so when calling
 // the function, we need to create a new one in the caller).
-LqFunc lq_func_end(void) {
+LqSymbol lq_func_end(void) {
   if (!curb) {
     err("empty function");
   }
@@ -294,17 +298,20 @@ LqFunc lq_func_end(void) {
   memset(tmph, 0, tmphcap * sizeof tmph[0]);  // ??
   qbe_parse_typecheck(curf);
 
-  LqFunc ret = {intern(curf->name)};
+  LqSymbol ret = {intern(curf->name)};
 
   qbe_main_func(curf);
+
+  curf = NULL;
 
   return ret;
 }
 
-LqRef lq_ref_for_func(LqFunc func) {
+LqRef lq_ref_for_symbol(LqSymbol sym) {
+  LQ_ASSERT(curf);
   Con c = {0};
   c.type = CAddr;
-  c.sym.id = func.u;
+  c.sym.id = sym.u;
   Ref ret = newcon(&c, curf);
   return _internal_ref_to_lqref(ret);
 }
@@ -459,35 +466,145 @@ LqRef lq_i_add(LqType size_class, LqRef lhs, LqRef rhs) {
   return _normal_two_op_instr(Oadd, size_class, lhs, rhs);
 }
 
-#if 0
 void lq_data_start(LqLinkage linkage, const char* name) {
-}
-#endif
-#if 0
-void lq_data_string(const char* str) {
-  for (const char* p = str; *p; ++p) {
-    lq_data_byte(*p);
+  _curd_lnk = _linkage_to_internal_lnk(linkage);
+  if (_curd_lnk.align == 0) {
+    _curd_lnk.align = 8;
   }
+
+  _curd = (Dat){0};
+  _curd.type = DStart;
+  _curd.name = (char*)name;
+  _curd.lnk = &_curd_lnk;
+  qbe_main_data(&_curd);
 }
 
-void lq_data_float(float f) {
-  lq_data_word(*(uint32_t*)&f);
+void lq_data_byte(uint8_t val) {
+  _curd.isref = 0;
+  _curd.isstr = 0;
+  _curd.type = DB;
+  _curd.u.num = val;
+  qbe_main_data(&_curd);
 }
 
-void lq_data_double(double d) {
-  lq_data_long(*(uint64_t*)&d);
+void lq_data_half(uint16_t val) {
+  _curd.isref = 0;
+  _curd.isstr = 0;
+  _curd.type = DH;
+  _curd.u.num = val;
+  qbe_main_data(&_curd);
 }
-#endif
+
+void lq_data_word(uint32_t val) {
+  _curd.isref = 0;
+  _curd.isstr = 0;
+  _curd.type = DW;
+  _curd.u.num = val;
+  qbe_main_data(&_curd);
+}
+
+void lq_data_long(uint64_t val) {
+  _curd.isref = 0;
+  _curd.isstr = 0;
+  _curd.type = DL;
+  _curd.u.num = val;
+  qbe_main_data(&_curd);
+}
+
+void lq_data_single(float val) {
+  _curd.isref = 0;
+  _curd.isstr = 0;
+  _curd.type = DW;
+  _curd.u.flts = val;
+  qbe_main_data(&_curd);
+}
+
+void lq_data_double(double val) {
+  _curd.isref = 0;
+  _curd.isstr = 0;
+  _curd.type = DL;
+  _curd.u.fltd = val;
+  qbe_main_data(&_curd);
+}
+
+size_t _str_repr(const char* str, char* into) {
+  size_t at = 0;
+
+#define EMIT(x)     \
+  do {              \
+    if (into)       \
+      into[at] = x; \
+    ++at;           \
+  } while (0)
+
+  EMIT('"');
+
+  for (const char* p = str; *p; ++p) {
+    switch (*p) {
+      case '"':
+        EMIT('\\');
+        EMIT('"');
+        break;
+      case '\\':
+        EMIT('\\');
+        EMIT('"');
+        break;
+      case '\r':
+        EMIT('\\');
+        EMIT('r');
+        break;
+      case '\n':
+        EMIT('\\');
+        EMIT('n');
+        break;
+      case '\t':
+        EMIT('\\');
+        EMIT('t');
+        break;
+      case '\0':
+        EMIT('\\');
+        EMIT('0');
+        break;
+      default:
+        EMIT(*p);
+        break;
+    }
+  }
+
+  EMIT('"');
+  EMIT(0);
+
+  return at;
+}
+
+void lq_data_string(const char* str) {
+  _curd.type = DB;
+  _curd.isstr = 1;
+  // QBE sneakily avoids de-escaping in the tokenizer and re-escaping during
+  // emission by just not handling escapes at all and relying on the input
+  // format for string escapes being the same as the assembler's. Because we're
+  // getting our strings from C here, we need to "repr" it.
+  size_t len = _str_repr(str, NULL);
+  char* escaped = alloca(len);
+  size_t len2 = _str_repr(str, escaped);
+  LQ_ASSERT(len == len2); (void)len2;
+  _curd.u.str = (char*)escaped;
+  qbe_main_data(&_curd);
+}
+
+LqSymbol lq_data_end(void) {
+  _curd.isref = 0;
+  _curd.isstr = 0;
+  _curd.type = DEnd;
+  qbe_main_data(&_curd);
+
+  LqSymbol ret = {intern(_curd.name)};
+  _curd = (Dat){0};
+  _curd_lnk = (Lnk){0};
+  return ret;
+}
 
 #if 0
-typedef struct LqLinkageData {
-  bool export;
-  bool tls;
-  bool common;
-  const char *section_name;
-  const char *section_flags;
-} LqLinkageData;
-
 LqType lq_begin_type_struct(const char *name, int align) {
   Typ *ty;
   int t, al;

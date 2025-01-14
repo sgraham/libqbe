@@ -71,3 +71,9 @@ For a slightly more involved example, see `hello.c`.
   lexically "active" at a time. It would be nice to be able to define multiple
   functions simultaneously, but the tradeoff is divergence from the original
   codebase and probably a more verbose API style.
+
+## TODO
+
+- protos for all normal instrs
+- jmp/jnz
+- type_start/type_end

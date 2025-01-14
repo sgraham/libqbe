@@ -18,7 +18,7 @@ LQ_OPAQUE_STRUCT_DEF(LqLinkage);
 LQ_OPAQUE_STRUCT_DEF(LqType);
 LQ_OPAQUE_STRUCT_DEF(LqBlock);
 LQ_OPAQUE_STRUCT_DEF(LqRef);
-LQ_OPAQUE_STRUCT_DEF(LqFunc);
+LQ_OPAQUE_STRUCT_DEF(LqSymbol);
 
 #undef LQ_OPAQUE_STRUCT_DEF
 
@@ -94,14 +94,14 @@ void lq_data_long(uint64_t val);
 void lq_data_string(const char* str);
 void lq_data_single(float f);
 void lq_data_double(double d);
-LqRef lq_data_end(void);
+LqSymbol lq_data_end(void);
 
 void lq_func_start(LqLinkage linkage, LqType return_type, const char* name);
-LqFunc lq_func_end(void);
+LqSymbol lq_func_end(void);
 
-// LqRef are function local, so the return value cannot be cached across
+// LqRef are function local, so the return value from cannot be cached across
 // functions.
-LqRef lq_ref_for_func(LqFunc func);
+LqRef lq_ref_for_symbol(LqSymbol sym);
 
 LqRef lq_extern(const char* name);
 
@@ -157,10 +157,10 @@ LqRef _lq_i_call_implv(bool is_varargs, int num_args, LqType result, LqRef func,
 // arrays from the front end anyway, but sometimes directly passing the
 // arguments is convenient.
 #define lq_i_call(result_type, ...) \
-  _lq_i_call_implv(LQ_NARGS(__VA_ARGS__), /*va=*/false, result_type, __VA_ARGS__)
+  _lq_i_call_implv(/*va=*/false, LQ_NARGS(__VA_ARGS__), result_type, __VA_ARGS__)
 
 #define lq_i_call_varargs(result_type, ...) \
-  _lq_i_call_implv(LQ_NARGS(__VA_ARGS__), /*va=*/true, result_type, __VA_ARGS__)
+  _lq_i_call_implv(/*va=*/true, LQ_NARGS(__VA_ARGS__), result_type, __VA_ARGS__)
 
 LqType lq_type_start_struct(const char* name, int align /*=0*/);
 LqType lq_type_start_union(const char* name, int align);

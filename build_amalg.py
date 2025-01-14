@@ -1,6 +1,3 @@
-# TODO:
-# pragma warning disables and GCC diagnostic ignores
-
 import glob
 import os
 import platform
