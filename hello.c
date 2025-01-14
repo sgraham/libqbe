@@ -17,29 +17,27 @@ data $fmt = { b "One and one make %d!\n", b 0 }
 
 void compile(void) {
   lq_func_start(lq_linkage_default, lq_type_word, "add");
-  LqRef a = lq_func_param_named(lq_type_word, "a");
-  LqRef b = lq_func_param_named(lq_type_word, "b");
+  LqRef a = lq_func_param(lq_type_word);
+  LqRef b = lq_func_param(lq_type_word);
   LqRef c = lq_i_add(lq_type_word, a, b);
   lq_i_ret(c);
   LqFunc add_func = lq_func_end();
-  (void)add_func;
 
 #if 0
   lq_data_start(lq_linkage_default, "fmt");
   lq_data_string("One and one make %d!\n");
   lq_data_byte(0);
   LqRef fmt = lq_data_end();
+#endif
 
   lq_func_start(lq_linkage_export, lq_type_word, "main");
   LqRef r = lq_i_call2(lq_type_word, lq_ref_for_func(add_func), lq_type_word, lq_const_int(1),
                        lq_type_word, lq_const_int(2));
-  (void)r;
-  //LqRef printf_func = lq_extern("printf");
-  //lq_i_call_varargs(printf, r);
+  LqRef printf_func = lq_extern("printf");
+  lq_i_call1(lq_type_word, printf_func, lq_type_word, r);
   lq_i_ret(lq_const_int(0));
   LqFunc main = lq_func_end();
   (void)main;
-#endif
 }
 
 int main(void) {

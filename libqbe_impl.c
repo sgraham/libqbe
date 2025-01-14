@@ -302,6 +302,14 @@ LqRef lq_ref_for_func(LqFunc func) {
   return _internal_ref_to_lqref(ret);
 }
 
+LqRef lq_extern(const char* name) {
+  Con c = {0};
+  c.type = CAddr;
+  c.sym.id = intern((char*)name);
+  Ref ret = newcon(&c, curf);
+  return _internal_ref_to_lqref(ret);
+}
+
 LqBlock lq_block_declare_named(const char* name) {
   LQ_ASSERT(_num_blocks < (int)(sizeof(_block_arena) / sizeof(_block_arena[0])));
   LqBlock ret = {_num_blocks++};
