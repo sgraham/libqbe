@@ -1,16 +1,14 @@
-name: Build
+name: Release nightly
 
 on:
   push:
-    branches: [ trunk ]
-  pull_request:
     branches: [ trunk ]
 
 jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -18,10 +16,14 @@ jobs:
     - uses: actions/setup-python@v4
       with:
         python-version: '3.12'
-    - uses: ilammy/msvc-dev-cmd@v1
-      with:
-        arch: amd64
-        vsversion: 2022
     - run: git config --global user.name "Patcher"
     - run: git config --global user.email "git@example.com"
     - run: python build_amalg.py
+    - uses: pyTooling/Actions/releaser@r0
+      with:
+        runs-on: ubuntu-latest
+        token: ${{ secrets.GITHUB_TOKEN }}
+        tag: nightly
+        files: |
+          libqbe.c
+          libqbe.h
