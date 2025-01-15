@@ -385,7 +385,7 @@ def main():
 
     instr_decls, instr_defns = make_instr_prototypes(ops_h_contents)
 
-    with open("libqbe.in.h", "r", newline="\n") as header_in:
+    with open("libqbe.in.h", "r") as header_in:
         header_contents = header_in.read()
 
     header_contents = header_contents.replace(
