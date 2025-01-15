@@ -22,8 +22,6 @@ jobs:
       with:
         arch: amd64
         vsversion: 2022
-    - run: git config user.name "Patcher"
-    - run: git config user.email "git@patch.com"
+    - run: git config --global user.name "Patcher"
+    - run: git config --global user.email "git@example.com"
     - run: python build_amalg.py
-    - run: git config --unset user.email
-    - run: git config --unset user.name
