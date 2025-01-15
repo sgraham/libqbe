@@ -146,7 +146,7 @@ LqRef lq_i_calla(LqType result,
                  LqType* types,
                  LqRef* args);
 
-LqRef _lq_i_call_implv(bool is_varargs, int num_args, LqType result, LqRef func, ...);
+LqRef lq_i_call_implv(bool is_varargs, int num_args, LqType result, LqRef func, ...);
 
 #define LQ_EXPAND(x) x
 #define LQ___NARGS(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, VAL, ...) VAL
@@ -173,10 +173,10 @@ LqRef _lq_i_call_implv(bool is_varargs, int num_args, LqType result, LqRef func,
 // arrays from the front end anyway, but sometimes directly passing the
 // arguments is convenient.
 #define lq_i_call(result_type, ...) \
-  _lq_i_call_implv(/*va=*/false, LQ_NARGS(__VA_ARGS__), result_type, __VA_ARGS__)
+  lq_i_call_implv(/*va=*/false, LQ_NARGS(__VA_ARGS__), result_type, __VA_ARGS__)
 
 #define lq_i_call_varargs(result_type, ...) \
-  _lq_i_call_implv(/*va=*/true, LQ_NARGS(__VA_ARGS__), result_type, __VA_ARGS__)
+  lq_i_call_implv(/*va=*/true, LQ_NARGS(__VA_ARGS__), result_type, __VA_ARGS__)
 
 %%%INSTRUCTION_DECLARATIONS%%%
 

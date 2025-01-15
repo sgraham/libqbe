@@ -123,6 +123,7 @@ void lq_init(LqTarget target, FILE* output, const char* debug_names) {
 
   (void)qbe_parse_tmpref; // TODO
   (void)qbe_main_dbgfile;  // TODO
+  (void)amd64_winabi_rclob;
 
   switch (target) {
     case LQ_TARGET_AMD64_APPLE:

@@ -479,6 +479,14 @@ def main():
                     "int amd64_sysv_rclob", "static int amd64_sysv_rclob"
                 )
 
+            if file == "amd64/winabi.c":
+                contents = contents.replace(
+                    "int amd64_winabi_rsave", "static int amd64_winabi_rsave"
+                )
+                contents = contents.replace(
+                    "int amd64_winabi_rclob", "static int amd64_winabi_rclob"
+                )
+
             if file == "arm64/targ.c":
                 contents = contents.replace("int arm64_rsave", "static int arm64_rsave")
                 contents = contents.replace("int arm64_rclob", "static int arm64_rclob")
@@ -503,6 +511,12 @@ def main():
                 )
                 contents = contents.replace(
                     "extern int amd64_sysv_rclob[];", "static int amd64_sysv_rclob[6];"
+                )
+                contents = contents.replace(
+                    "extern int amd64_winabi_rsave[];", "static int amd64_winabi_rsave[23];"
+                )
+                contents = contents.replace(
+                    "extern int amd64_winabi_rclob[];", "static int amd64_winabi_rclob[8];"
                 )
                 contents = contents.replace(
                     "extern int arm64_rsave[];", "static int arm64_rsave[44];"
