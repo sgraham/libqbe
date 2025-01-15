@@ -7,7 +7,7 @@ on:
     branches: [ trunk ]
 
 jobs:
-  tests:
+  build:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -25,11 +25,16 @@ jobs:
     - run: git config --global user.name "Patcher"
     - run: git config --global user.email "git@example.com"
     - run: python build_amalg.py
-    - uses: pyTooling/Actions/releaser@r0
-      with:
-        runs-on: ubuntu-latest
-        token: ${{ secrets.GITHUB_TOKEN }}
-        tag: nightly
-        files: |
-          libqbe.c
-          libqbe.h
+  release:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ubuntu-latest
+    uses: pyTooling/Actions/releaser@r0
+    with:
+      runs-on: ubuntu-latest
+      token: ${{ secrets.GITHUB_TOKEN }}
+      tag: nightly
+      files: |
+        libqbe.c
+        libqbe.h
