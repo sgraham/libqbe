@@ -425,7 +425,7 @@ LqRef lq_i_calla(LqType result,
   return _internal_ref_to_lqref(tmp);
 }
 
-LqRef _lq_i_call_implv(bool is_varargs, int num_args, LqType result, LqRef func, ...) {
+LqRef lq_i_call_implv(bool is_varargs, int num_args, LqType result, LqRef func, ...) {
   va_list ap;
   va_start(ap, func);
 
