@@ -15,12 +15,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - uses: eine/tip@master
-      with:
-        tag: nightly
-        rm: true
-        token: ${{ secrets.GITHUB_TOKEN }}
-        files: libqbe.[ch]
     - uses: actions/setup-python@v4
       with:
         python-version: '3.12'
@@ -28,6 +22,12 @@ jobs:
       with:
         arch: amd64
         vsversion: 2022
+    - uses: eine/tip@master
+      with:
+        tag: nightly
+        rm: true
+        token: ${{ secrets.GITHUB_TOKEN }}
+        files: libqbe.[ch]
     - run: git config --global user.name "Patcher"
     - run: git config --global user.email "git@example.com"
     - run: python build_amalg.py
