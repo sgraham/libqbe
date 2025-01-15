@@ -46,6 +46,7 @@ if string other than "" is specified.
 - L: liveness
 - S: spilling
 - R: reg. allocation
+- T: types
 */
 void lq_init(LqTarget target /*=LQ_TARGET_DEFAULT*/,
              FILE* output /*=stdout*/,
@@ -82,6 +83,12 @@ typedef enum LqTypeKind {
 #define lq_type_long ((LqType){LQ_TYPE_L})
 #define lq_type_single ((LqType){LQ_TYPE_S})
 #define lq_type_double ((LqType){LQ_TYPE_D})
+#define lq_type_byte ((LqType){LQ_TYPE_UB})
+#define lq_type_half ((LqType){LQ_TYPE_UH})
+#define lq_type_sbyte ((LqType){LQ_TYPE_SB})
+#define lq_type_shalf ((LqType){LQ_TYPE_SH})
+#define lq_type_ubyte ((LqType){LQ_TYPE_UB})
+#define lq_type_uhalf ((LqType){LQ_TYPE_UH})
 
 void lq_type_struct_start(const char* name, int align /*=0 for natural*/);
 void lq_type_add_field(LqType field);

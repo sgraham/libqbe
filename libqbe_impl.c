@@ -19,6 +19,9 @@ static LqInitStatus lq_initialized;
 
 static uint _ntyp;
 static Typ* _curty;
+static int _curty_build_n;
+static uint64_t _curty_build_sz;
+static int _curty_build_al;
 
 static int _dbg_name_counter;
 
@@ -118,8 +121,7 @@ void lq_init(LqTarget target, FILE* output, const char* debug_names) {
   LQ_ASSERT(exp.u == 1); (void)exp;
 
   (void)qbe_parse_tmpref; // TODO
-  (void)qbe_main_dbgfile;
-  (void)qbe_main_data;
+  (void)qbe_main_dbgfile;  // TODO
 
   switch (target) {
     case LQ_TARGET_AMD64_APPLE:
@@ -176,6 +178,9 @@ void lq_init(LqTarget target, FILE* output, const char* debug_names) {
 
   _ntyp = 0;
   typ = vnew(0, sizeof(typ[0]), PHeap);
+  // Reserve the ids of the basic types so the .u values can be used as TypeKinds.
+  vgrow(&typ, _ntyp + LQ_TYPE_0 + 1);
+  _ntyp += LQ_TYPE_0 + 1;
 
   dbg = debug_names[0] != 0;
   lq_initialized = dbg ? LQIS_INITIALIZED_NO_FIN : LQIS_INITIALIZED_EMIT_FIN;
@@ -225,7 +230,7 @@ void lq_func_start(LqLinkage linkage, LqType return_type, const char* name) {
 LqRef lq_func_param_named(LqType type, const char* name) {
   int ty;
   int k = _lqtype_to_cls_and_ty(type, &ty);
-  Ref r = newtmp(0, k, curf);
+  Ref r = newtmp(0, Kx, curf);
   LQ_NAMED_IF_DEBUG(curf->tmp[r.val].name, name);
   // TODO: env ptr, varargs
   if (k == Kc) {
@@ -673,49 +678,70 @@ void lq_type_struct_start(const char *name, int align) {
   _curty->isdark = 0;
   _curty->isunion = 0;
   _curty->align = -1;
+  _curty_build_n = 0;
 
   if (align > 0) {
     int al;
     for (al = 0; align /= 2; al++)
       ;
-    ty->align = al;
+    _curty->align = al;
   }
 
   _curty->size = 0;
   strcpy(_curty->name, name);
   _curty->fields = vnew(1, sizeof _curty->fields[0], PHeap);
   _curty->nunion = 1;
+
+  _curty_build_sz = 0;
+  _curty_build_al = _curty->align;
 }
 
 void lq_type_add_field_with_count(LqType field, uint32_t count) {
   Field* fld = _curty->fields[0];
 
-  int n = 0;
-  uint64_t sz = 0;
-  int al = _curty->align;
+  Typ* ty1;
+  uint64_t s;
+  int a;
 
-  Typ* ty1 = &typ[field.u];
-  uint64_t s = ty1->size;
-  int a = ty1->align;
+  int type;
+  int ty;
+  int cls = _lqtype_to_cls_and_ty(field, &ty);
+  switch (cls) {
+    case LQ_TYPE_D: type = Fd; s = 8; a = 3; break;
+    case LQ_TYPE_L: type = Fl; s = 8; a = 3; break;
+    case LQ_TYPE_S: type = Fs; s = 4; a = 2; break;
+    case LQ_TYPE_W: type = Fw; s = 4; a = 2; break;
+    case LQ_TYPE_SH: type = Fh; s = 2; a = 1; break;
+    case LQ_TYPE_UH: type = Fh; s = 2; a = 1; break;
+    case LQ_TYPE_SB: type = Fb; s = 1; a = 0; break;
+    case LQ_TYPE_UB: type = Fb; s = 1; a = 0; break;
+    default:
+      type = FTyp;
+      ty1 = &typ[field.u];
+      s = ty1->size;
+      a = ty1->align;
+      break;
+  }
 
-  if (a > al)
-    al = a;
+  if (a > _curty_build_al) {
+    _curty_build_al = a;
+  }
   a = (1 << a) - 1;
-  a = ((sz + a) & ~a) - sz;
+  a = ((_curty_build_sz + a) & ~a) - _curty_build_sz;
   if (a) {
-    if (n < NField) {
-      fld[n].type = FPad;
-      fld[n].len = a;
-      n++;
+    if (_curty_build_n < NField) {
+      fld[_curty_build_n].type = FPad;
+      fld[_curty_build_n].len = a;
+      _curty_build_n++;
     }
   }
-  sz += a + count*s;
-  if (!is_basic_type(field)) {
+  _curty_build_sz += a + count * s;
+  if (type == FTyp) {
     s = field.u;
   }
-  for (; c>0 && n<NField; c--, n++) {
-    fld[n].type = type;
-    fld[n].len = s;
+  for (; count > 0 && _curty_build_n < NField; count--, _curty_build_n++) {
+    fld[_curty_build_n].type = type;
+    fld[_curty_build_n].len = s;
   }
 }
 
@@ -723,15 +749,23 @@ void lq_type_add_field(LqType field) {
   lq_type_add_field_with_count(field, 1);
 }
 
-LqType lq_end_type(void) {
-  fld[n].type = FEnd;
-  a = 1 << al;
-  if (sz < ty->size) {
-    sz = ty->size;
+LqType lq_type_struct_end(void) {
+  Field* fld = _curty->fields[0];
+  fld[_curty_build_n].type = FEnd;
+  int a = 1 << _curty_build_al;
+  if (_curty_build_sz < _curty->size) {
+    _curty_build_sz = _curty->size;
   }
-  ty->size = (sz + a - 1) & ~a;
-  ty->align = al;
+  _curty->size = (_curty_build_sz + a - 1) & -a;
+  _curty->align = _curty_build_al;
+  if (debug['T']) {
+    fprintf(stderr, "\n> Parsed type:\n");
+    printtyp(_curty, stderr);
+  }
   LqType ret = {_curty - typ};
   _curty = NULL;
+  _curty_build_n = 0;
+  _curty_build_sz = 0;
+  _curty_build_al = 0;
   return ret;
 }

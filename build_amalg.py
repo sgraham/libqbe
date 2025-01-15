@@ -179,18 +179,21 @@ def make_instr_prototypes(ops_h_contents):
     def is_single_arg_op(type_string_arg_1):
         return type_string_arg_1.count('x') + type_string_arg_1.count('e') == 4
 
-    class_map = {
-        'w': 'lq_type_word',
-        'l': 'lq_type_long',
-        'm': 'lq_type_long',
-        's': 'lq_type_single',
-        'd': 'lq_type_double',
-    }
+    class_order = [
+        'lq_type_word',
+        'lq_type_long',
+        'lq_type_single',
+        'lq_type_double',
+    ]
     def only_single_size_class(arg0):
         is_single = arg0.count('e') == 3
         if is_single:
-            arg0_class = arg0.replace('e', '')
-            return (True, class_map[arg0_class])
+            index_of_non_e = -1
+            for i in range(4):
+                if arg0[i] != 'e':
+                    index_of_non_e = i
+                    break
+            return (True, class_order[index_of_non_e])
         else:
             return (False, None)
 

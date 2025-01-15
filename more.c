@@ -72,19 +72,33 @@ void compile_if_then_else_using_phi(void) {
 
 void compile_passing_aggregates_by_value(void) {
   // struct SomeStruct { uint64_t a; uint64_t b; float c; };
-  lq_type_struct_start("SomeStruct");
+  lq_type_struct_start("SomeStruct", 0);
   lq_type_add_field(lq_type_long);
   lq_type_add_field(lq_type_long);
   lq_type_add_field(lq_type_single);
   LqType some_struct = lq_type_struct_end();
+  printf("somestruct.u = %u\n", some_struct.u);
+
+  lq_type_struct_start("Paddy", 0);
+  lq_type_add_field(lq_type_byte);
+  lq_type_add_field(lq_type_long);
+  lq_type_add_field(lq_type_word);
+  lq_type_add_field(lq_type_double);
+  lq_type_struct_end();
+
+  lq_type_struct_start("LateAlign", 0);
+  lq_type_add_field_with_count(lq_type_byte, 99);
+  lq_type_add_field(lq_type_long);
+  lq_type_struct_end();
 
   lq_func_start(lq_linkage_default, lq_type_long, "passing_aggregate_by_value");
   LqRef p0 = lq_func_param(lq_type_word);
   LqRef agg0 = lq_func_param(some_struct);
 
-  LqRef second_field_ptr = lq_i_add(lq_type_long, p0, agg0);
+  LqRef second_field_ptr = lq_i_add(lq_type_long, agg0, lq_const_int(8));
   LqRef second_field = lq_i_load(lq_type_long, second_field_ptr);
-  LqRef res = lq_i_add(lq_type_long, p0, second_field);
+  LqRef p0e = lq_i_extuw(p0);
+  LqRef res = lq_i_add(lq_type_long, p0e, second_field);
   lq_i_ret(res);
 
   lq_func_end();
