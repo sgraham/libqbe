@@ -70,7 +70,7 @@ index e321254..a8090d0 100644
 +  fprintf(f, "  isdark: %d\n", ty->isdark);
 +  fprintf(f, "  isunion: %d\n", ty->isunion);
 +  fprintf(f, "  align: %d\n", ty->align);
-+  fprintf(f, "  size: %llu\n", ty->size);
++  fprintf(f, "  size: %lu\n", ty->size);
 +  fprintf(f, "  nunion: %u\n", ty->nunion);
 +  for (uint i = 0; i < ty->nunion; ++i) {
 +    fprintf(f, "  union %d\n", i);

@@ -484,7 +484,7 @@ LqRef lq_i_phi(LqType size_class, LqBlock block0, LqRef val0, LqBlock block1, Lq
 }
 
 static LqRef _normal_two_op_instr(int op, LqType size_class, LqRef arg0, LqRef arg1) {
-  LQ_ASSERT(size_class.u >= LQ_TYPE_W && size_class.u <= LQ_TYPE_D);
+  LQ_ASSERT(/*size_class.u >= LQ_TYPE_W && */size_class.u <= LQ_TYPE_D);
   LQ_ASSERT(_ps == PIns || _ps == PPhi);
   LQ_ASSERT(curi - insb < NIns);
   Ref tmp = newtmp(NULL, Kx, curf);
@@ -512,7 +512,7 @@ static void _normal_two_op_void_instr(int op, LqRef arg0, LqRef arg1) {
 }
 
 static LqRef _normal_one_op_instr(int op, LqType size_class, LqRef arg0) {
-  LQ_ASSERT(size_class.u >= LQ_TYPE_W && size_class.u <= LQ_TYPE_D);
+  LQ_ASSERT(/*size_class.u >= LQ_TYPE_W && */size_class.u <= LQ_TYPE_D);
   LQ_ASSERT(_ps == PIns || _ps == PPhi);
   LQ_ASSERT(curi - insb < NIns);
   Ref tmp = newtmp(NULL, Kx, curf);
