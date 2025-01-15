@@ -63,10 +63,10 @@ def namespace_static_funcs(ns, file, contents):
     for fn in function_names:
         contents = re.sub(r"\b" + fn + "\\(", ns + fn + "(", contents)
         contents = re.sub(
-            r"qsort\((.*) " + fn + "\);", r"qsort(\1 " + ns + fn + ");", contents
+            r"qsort\((.*) " + fn + r"\);", r"qsort(\1 " + ns + fn + ");", contents
         )
         contents = re.sub(
-            r"loopiter\((.*) " + fn + "\);", r"loopiter(\1 " + ns + fn + ");", contents
+            r"loopiter\((.*) " + fn + r"\);", r"loopiter(\1 " + ns + fn + ");", contents
         )
 
     return contents
