@@ -121,7 +121,6 @@ void lq_init(LqTarget target, FILE* output, const char* debug_names) {
   LqLinkage exp = lq_linkage_create(8, true, false, false, NULL, NULL);
   LQ_ASSERT(exp.u == 1); (void)exp;
 
-  (void)qbe_parse_tmpref; // TODO
   (void)qbe_main_dbgfile;  // TODO
   (void)amd64_winabi_rclob;
 
@@ -286,7 +285,6 @@ LqSymbol lq_func_end(void) {
   for (Blk* b = curf->start; b; b = b->link) {
     LQ_ASSERT(b->dlink == 0);
   }
-  memset(tmph, 0, tmphcap * sizeof tmph[0]);  // ??
   qbe_parse_typecheck(curf);
 
   LqSymbol ret = {intern(curf->name)};

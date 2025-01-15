@@ -552,6 +552,9 @@ def main():
                     contents, "static void", "qbe_parse_parsedat"
                 )
                 contents = remove_function(
+                    contents, "static Ref", "qbe_parse_tmpref"
+                )
+                contents = remove_function(
                     contents, "static void", "qbe_parse_parsetyp"
                 )
                 contents = remove_function(
@@ -592,6 +595,8 @@ def main():
                 contents = remove_data(contents, "static uchar lexh")
                 contents = remove_data(contents, "static char *inpath;")
                 contents = remove_data(contents, "static int lnum;")
+                contents = remove_data(contents, "static int *tmph;")
+                contents = remove_data(contents, "static int tmphcap;")
                 contents = remove_lines_range(contents, "static struct {", "} tokval;")
                 contents = remove_lines_range(contents, "static char *kwmap", "};")
 
