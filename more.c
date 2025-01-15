@@ -71,6 +71,8 @@ void compile_if_then_else_using_phi(void) {
 }
 
 void compile_passing_aggregates_by_value(void) {
+  // Can view type layout with 'T' in lq_init() debug_flags.
+
   // struct SomeStruct { uint64_t a; uint64_t b; float c; };
   lq_type_struct_start("SomeStruct", 0);
   lq_type_add_field(lq_type_long);

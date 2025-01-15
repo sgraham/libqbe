@@ -63,7 +63,6 @@ For a slightly more involved example, see the examples in  `hello.c` and
 
 ## TODO
 
-- type_start/type_end
 - probably get rid of callv and write N versions for checking type vs. ref
 - lq_data_ref (with offset)
 - debug info
@@ -78,12 +77,12 @@ For a slightly more involved example, see the examples in  `hello.c` and
 Long term than the TODOs above which are just filling out the existing API:
 
 - The output of the library is identical to the command line tool (i.e. input
-  suitable for `as`. I plan to have libqbe emit other formats in the future.
-  Perhaps directly to object files, rather than requiring an assembler, or
-  directly into memory for JIT-style applications.
+  suitable for `as`. It might be nice to have libqbe emit other formats in the
+  future. Perhaps directly to object files, rather than requiring an assembler,
+  or directly into memory for JIT-style applications.
 - The API currently uses a lot of implicit context (i.e. current function,
-  current data definition, current block). This is because of the parsing model
-  and input format of QBE, where only one top-level data or function can be
-  lexically "active" at a time. It would be nice to be able to define multiple
-  functions simultaneously, but the tradeoff is divergence from the original
-  codebase and probably a more verbose API style.
+  current data definition, current block, current type). This is because of the
+  parsing model and input format of QBE, where only one top-level data or
+  function can naturally be lexically "active" at a time. It would be nice to be
+  able to define multiple functions simultaneously, but the tradeoff would be
+  divergence from the original codebase and probably a more verbose API style.

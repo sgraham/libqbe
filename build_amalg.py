@@ -588,6 +588,9 @@ def main():
                 if line.startswith("#include <getopt.h>"):
                     amalg.write("/* skipping getopt.h */\n")
                     continue
+                if line.startswith("#include <assert.h>"):
+                    amalg.write("/* skipping assert.h */\n")
+                    continue
                 if line.strip().startswith(
                     '#include "ops.h"'
                 ) or line.strip().startswith('#include "../ops.h"'):
