@@ -1,4 +1,5 @@
-#line 2 "libqbe_impl.c"
+#include "libqbe.h"
+
 static PState _ps;
 
 // Blk lifetimes are per-func

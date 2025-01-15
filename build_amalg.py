@@ -40,7 +40,6 @@ LIBQBE_C_FILES = [
     "rv64/emit.c",
     "rv64/isel.c",
     "rv64/targ.c",
-    "../libqbe.h",
     "../libqbe_impl.c",
 ]
 
@@ -386,6 +385,16 @@ def main():
 
     instr_decls, instr_defns = make_instr_prototypes(ops_h_contents)
 
+    with open("libqbe.in.h", "r", newline="\n") as header_in:
+        header_contents = header_in.read()
+
+    header_contents = header_contents.replace(
+        "%%%INSTRUCTION_DECLARATIONS%%%\n", instr_decls
+    )
+
+    with open("libqbe.h", "w", newline="\n") as header_out:
+        header_out.write(header_contents)
+
     with open("libqbe.c", "w", newline="\n") as amalg:
         amalg.write("/*\n\nQBE LICENSE:\n\n")
         amalg.write(license_contents)
@@ -612,16 +621,6 @@ def main():
 #endif
 """
         )
-
-    with open("libqbe.in.h", "r", newline="\n") as header_in:
-        header_contents = header_in.read()
-
-    header_contents = header_contents.replace(
-        "%%%INSTRUCTION_DECLARATIONS%%%\n", instr_decls
-    )
-
-    with open("libqbe.h", "w", newline="\n") as header_out:
-        header_out.write(header_contents)
 
     if sys.platform == "win32":
         subprocess.check_call(
