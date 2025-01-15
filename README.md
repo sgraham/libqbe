@@ -29,11 +29,12 @@ library), and write your front end against `libqbe.h`.
 
 ## Warning
 
-**It is quite possible that I have introduced bugs in this packaging. If you use
-this library, and encounter a bug in code generation, please be sure to
-reproduce the bug in "plain" QBE before engaging the QBE mailing list.** You can
-use the `debug_flags` of `lq_init()` to emit textual QBE input that can be fed
-to the standard command line tool if necessary.
+**It is quite possible that I have introduced bugs in this packaging, as the
+integration with the existing parser is a bit subtle. If you use this library,
+and encounter a bug in code generation, please be sure to reproduce the bug in
+"plain" QBE before engaging the QBE mailing list.** You can use the
+`debug_flags` of `lq_init()` to emit textual QBE input that can be fed to the
+standard command line tool if necessary.
 
 ## Tutorial
 
@@ -57,16 +58,18 @@ int main(void) {
 }
 ```
 
-For a slightly more involved example, see `hello.c`.
+For a slightly more involved example, see the examples in  `hello.c` and
+`more.c`.
 
 ## TODO
 
-- protos for all normal instrs
-- jmp/jnz
 - type_start/type_end
+- probably get rid of callv and write N versions for checking type vs. ref
 - lq_data_ref (with offset)
 - debug info
+- hlt
 - unions
+- thread/tls
 - opaque types
 - github workflow to check various compilers, and build a 'release'
 

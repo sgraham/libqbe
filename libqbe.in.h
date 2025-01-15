@@ -77,10 +77,16 @@ typedef enum LqTypeKind {
   LQ_TYPE_M = LQ_TYPE_L,  // memory
 } LqTypeKind;
 
+#define lq_type_void ((LqType){LQ_TYPE_0})
 #define lq_type_word ((LqType){LQ_TYPE_W})
 #define lq_type_long ((LqType){LQ_TYPE_L})
 #define lq_type_single ((LqType){LQ_TYPE_S})
 #define lq_type_double ((LqType){LQ_TYPE_D})
+
+void lq_type_struct_start(const char* name, int align /*=0 for natural*/);
+void lq_type_add_field(LqType field);
+void lq_type_add_field_with_count(LqType field, uint32_t count);
+LqType lq_type_struct_end(void);
 
 LqRef lq_const_int(int64_t i);
 LqRef lq_const_single(float f);
@@ -99,6 +105,8 @@ LqSymbol lq_data_end(void);
 void lq_func_start(LqLinkage linkage, LqType return_type, const char* name);
 LqSymbol lq_func_end(void);
 
+void lq_func_dump_current(FILE* to);
+
 // LqRef are function local, so the return value from cannot be cached across
 // functions.
 LqRef lq_ref_for_symbol(LqSymbol sym);
@@ -111,17 +119,18 @@ LqRef lq_func_param_named(LqType type, const char* name);
 #define lq_block_declare() lq_block_declare_named(NULL)
 LqBlock lq_block_declare_named(const char* name);
 
-void lq_block_start_previously_declared(LqBlock block);
+void lq_block_start(LqBlock block);
 
-#define lq_block_start() lq_block_start_named("")
-LqBlock lq_block_start_named(const char* name);
-
-%%%INSTRUCTION_DECLARATIONS%%%
+#define lq_block_declare_and_start() lq_block_declare_and_start_named(NULL)
+LqBlock lq_block_declare_and_start_named(const char* name);
 
 void lq_i_ret_void(void);
 void lq_i_ret(LqRef val);
 void lq_i_jmp(LqBlock block);
 void lq_i_jnz(LqRef cond, LqBlock if_true, LqBlock if_false);
+
+// TODO: only 2-branch phi supported currently
+LqRef lq_i_phi(LqType size_class, LqBlock block0, LqRef val0, LqBlock block1, LqRef val1);
 
 LqRef lq_i_calla(LqType result,
                  LqRef func,
@@ -162,10 +171,7 @@ LqRef _lq_i_call_implv(bool is_varargs, int num_args, LqType result, LqRef func,
 #define lq_i_call_varargs(result_type, ...) \
   _lq_i_call_implv(/*va=*/true, LQ_NARGS(__VA_ARGS__), result_type, __VA_ARGS__)
 
-void lq_type_struct_start(const char* name, int align /*=0*/);
-void lq_type_add_field(LqType field);
-void lq_type_add_field_with_count(LqType field, uint32_t count);
-LqType lq_type_struct_end(void);
+%%%INSTRUCTION_DECLARATIONS%%%
 
 #ifdef __cplusplus
 }  // extern "C"

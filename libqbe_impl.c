@@ -101,6 +101,10 @@ static int _lqtype_to_cls_and_ty(LqType type, int* ty) {
   }
 }
 
+static Blk* _lqblock_to_internal_blk(LqBlock block) {
+  return &_block_arena[block.u];
+}
+
 void lq_init(LqTarget target, FILE* output, const char* debug_names) {
   LQ_ASSERT(lq_initialized == LQIS_UNINITIALIZED);
 
@@ -215,7 +219,7 @@ void lq_func_start(LqLinkage linkage, LqType return_type, const char* name) {
   strncpy(curf->name, name, NString - 1);
   _ps = PLbl;
 
-  lq_block_start();
+  lq_block_declare_and_start();
 }
 
 LqRef lq_func_param_named(LqType type, const char* name) {
@@ -234,27 +238,6 @@ LqRef lq_func_param_named(LqType type, const char* name) {
   ++curi;
   return _internal_ref_to_lqref(r);
 }
-
-#if 0
-	Con c;
-
-	memset(&c, 0, sizeof c);
-	switch (next()) {
-	default:
-		return R;
-	case Ttmp:
-		return tmpref(tokval.str);
-	case Tthread:
-		c.sym.type = SThr;
-		expect(Tglo);
-		/* fall through */
-	case Tglo:
-		c.type = CAddr;
-		c.sym.id = intern(tokval.str);
-		break;
-	}
-	return newcon(&c, curf);
-#endif
 
 LqRef lq_const_int(int64_t i) {
   Con c = {0};
@@ -308,6 +291,10 @@ LqSymbol lq_func_end(void) {
   return ret;
 }
 
+void lq_func_dump_current(FILE* to) {
+  printfn(curf, to);
+}
+
 LqRef lq_ref_for_symbol(LqSymbol sym) {
   LQ_ASSERT(curf);
   Con c = {0};
@@ -328,15 +315,15 @@ LqRef lq_extern(const char* name) {
 LqBlock lq_block_declare_named(const char* name) {
   LQ_ASSERT(_num_blocks < LQ_COUNTOFI(_block_arena));
   LqBlock ret = {_num_blocks++};
-  Blk* blk = &_block_arena[ret.u];
+  Blk* blk = _lqblock_to_internal_blk(ret);
   memset(blk, 0, sizeof(Blk));
   blk->id = ret.u;
   LQ_NAMED_IF_DEBUG(blk->name, name);
   return ret;
 }
 
-void lq_block_start_previously_declared(LqBlock block) {
-  Blk* b = &_block_arena[block.u];
+void lq_block_start(LqBlock block) {
+  Blk* b = _lqblock_to_internal_blk(block);
   if (curb && curb->jmp.type == Jxxx) {
     qbe_parse_closeblk();
     curb->jmp.type = Jjmp;
@@ -351,9 +338,9 @@ void lq_block_start_previously_declared(LqBlock block) {
   _ps = PPhi;
 }
 
-LqBlock lq_block_start_named(const char* name) {
+LqBlock lq_block_declare_and_start_named(const char* name) {
   LqBlock new = lq_block_declare_named(name);
-  lq_block_start_previously_declared(new);
+  lq_block_start(new);
   return new;
 }
 
@@ -445,6 +432,49 @@ LqRef _lq_i_call_implv(bool is_varargs, int num_args, LqType result, LqRef func,
   }
   va_end(ap);
   return lq_i_calla(result, func, is_varargs, num_args, types, args);
+}
+
+void lq_i_jmp(LqBlock block) {
+  LQ_ASSERT(_ps == PIns || _ps == PPhi);
+  curb->jmp.type = Jjmp;
+  curb->s1 = _lqblock_to_internal_blk(block);
+  qbe_parse_closeblk();
+}
+
+void lq_i_jnz(LqRef cond, LqBlock if_true, LqBlock if_false) {
+  Ref r = _lqref_to_internal_ref(cond);
+  if (req(r, R))
+    err("invalid argument for jnz jump");
+  curb->jmp.type = Jjnz;
+  curb->jmp.arg = r;
+  curb->s1 = _lqblock_to_internal_blk(if_true);
+  curb->s2 = _lqblock_to_internal_blk(if_false);
+  qbe_parse_closeblk();
+}
+
+LqRef lq_i_phi(LqType size_class, LqBlock block0, LqRef val0, LqBlock block1, LqRef val1) {
+  if (_ps != PPhi || curb == curf->start) {
+    err("unexpected phi instruction");
+  }
+
+  Ref tmp = newtmp(NULL, Kx, curf);
+  LQ_NAMED_IF_DEBUG(curf->tmp[tmp.val].name, NULL);
+
+  Phi* phi = alloc(sizeof *phi);
+  phi->to = tmp;
+  phi->cls = size_class.u;
+  int i = 2;  // TODO: variable if necessary
+  phi->arg = vnew(i, sizeof(Ref), PFn);
+  phi->arg[0] = _lqref_to_internal_ref(val0);
+  phi->arg[1] = _lqref_to_internal_ref(val1);
+  phi->blk = vnew(i, sizeof(Blk*), PFn);
+  phi->blk[0] = _lqblock_to_internal_blk(block0);
+  phi->blk[1] = _lqblock_to_internal_blk(block1);
+  phi->narg = i;
+  *plink = phi;
+  plink = &phi->link;
+  _ps = PPhi;
+  return _internal_ref_to_lqref(tmp);
 }
 
 static LqRef _normal_two_op_instr(int op, LqType size_class, LqRef arg0, LqRef arg1) {
@@ -629,16 +659,28 @@ LqSymbol lq_data_end(void) {
   return ret;
 }
 
+// Types are a bit questionable (or at least "minimal") in QBE. The specific
+// field details are required for determining how to pass at the ABI level
+// properly, but in practice, the ABI's only need to know about the first 16 or
+// 32 byte of the structure (for example, to determine if the structure should
+// be passed in int regs, float regs, or on the stack as a pointer). So, while
+// QBE appears to define an arbitrary number of fields, it just drops the
+// details of fields beyond the 32nd (but still updates overall struct
+// size/alignment for additional values).
 void lq_type_struct_start(const char *name, int align) {
-  // TODO: I don't understand why parsetyp counts the bits in alignment here,
-  // vs. direct use in func/data, need to test more.
-  LQ_ASSERT(align == 0 && "non-default alignment not implemented");
-
   vgrow(&typ, _ntyp + 1);
   _curty = &typ[_ntyp++];
   _curty->isdark = 0;
   _curty->isunion = 0;
   _curty->align = -1;
+
+  if (align > 0) {
+    int al;
+    for (al = 0; align /= 2; al++)
+      ;
+    ty->align = al;
+  }
+
   _curty->size = 0;
   strcpy(_curty->name, name);
   _curty->fields = vnew(1, sizeof _curty->fields[0], PHeap);
@@ -646,12 +688,9 @@ void lq_type_struct_start(const char *name, int align) {
 }
 
 void lq_type_add_field_with_count(LqType field, uint32_t count) {
-  (void)field;
-  (void)count;
-#if 0
   Field* fld = _curty->fields[0];
 
-  int  n = 0;
+  int n = 0;
   uint64_t sz = 0;
   int al = _curty->align;
 
@@ -670,22 +709,21 @@ void lq_type_add_field_with_count(LqType field, uint32_t count) {
       n++;
     }
   }
-  sz += a + count * s;
-  if (field.u > LQ_LAST_BASIC_TYPE) {
+  sz += a + count*s;
+  if (!is_basic_type(field)) {
     s = field.u;
   }
-  for (; c >= 0 && n < NField; c--, n++) {
+  for (; c>0 && n<NField; c--, n++) {
     fld[n].type = type;
     fld[n].len = s;
   }
-#endif
 }
+
 void lq_type_add_field(LqType field) {
   lq_type_add_field_with_count(field, 1);
 }
 
 LqType lq_end_type(void) {
-#if 0
   fld[n].type = FEnd;
   a = 1 << al;
   if (sz < ty->size) {
@@ -693,7 +731,6 @@ LqType lq_end_type(void) {
   }
   ty->size = (sz + a - 1) & ~a;
   ty->align = al;
-#endif
   LqType ret = {_curty - typ};
   _curty = NULL;
   return ret;

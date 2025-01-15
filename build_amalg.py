@@ -174,7 +174,25 @@ def make_instr_prototypes(ops_h_contents):
     def is_no_return(op):
         # Also blit and call, but those are handled specially and aren't in the
         # public section of ops.h.
-        return op == "vastart" or op.startswith("store")
+        return op == "vastart" or op.startswith("store") or op.startswith("dbgloc")
+
+    def is_single_arg_op(type_string_arg_1):
+        return type_string_arg_1.count('x') + type_string_arg_1.count('e') == 4
+
+    class_map = {
+        'w': 'lq_type_word',
+        'l': 'lq_type_long',
+        'm': 'lq_type_long',
+        's': 'lq_type_single',
+        'd': 'lq_type_double',
+    }
+    def only_single_size_class(arg0):
+        is_single = arg0.count('e') == 3
+        if is_single:
+            arg0_class = arg0.replace('e', '')
+            return (True, class_map[arg0_class])
+        else:
+            return (False, None)
 
     decls = ""
     defns = ""
@@ -184,21 +202,29 @@ def make_instr_prototypes(ops_h_contents):
         op = toks[0]
         arg0 = "".join(toks[1:5])
         arg1 = "".join(toks[5:9])
-        if arg1 == "xxxx":
-            # No non-return single arg ops.
-            proto = "LqRef lq_i_%s(LqType size_class, LqRef arg0 /*%s*/)" % (op, "".join(arg0))
-            decls += proto + ";\n"
-            defns += proto + " { return _normal_one_op_instr(O%s, size_class, arg0); }\n" % op
+        if is_single_arg_op(arg1):
+            # No non-return single arg ops, but some don't need a size_class
+            # (because there's only one possibility).
+            is_single_size_class, size_class0 = only_single_size_class(arg0)
+            if is_single_size_class:
+                proto = "LqRef lq_i_%s(LqRef arg0 /*%s*/)" % (op, "".join(arg0))
+                defns += proto + " { return _normal_one_op_instr(O%s, %s, arg0); }\n" % (
+                        op, size_class0)
+            else:
+                proto = "LqRef lq_i_%s(LqType size_class, LqRef arg0 /*%s*/)" % (op, "".join(arg0))
+                defns += proto + " { return _normal_one_op_instr(O%s, size_class, arg0); }\n" % (op)
         else:
             if is_no_return(op):
                 proto = "void lq_i_%s(LqRef arg0 /*%s*/, LqRef arg1 /*%s*/)" % (
                         op, "".join(arg0), "".join(arg1))
                 defns += proto + " { _normal_two_op_void_instr(O%s, arg0, arg1); }\n" % op
             else:
+                # None of these have trivial size classes, only the single op
+                # ones have that case.
                 proto = "LqRef lq_i_%s(LqType size_class, LqRef arg0 /*%s*/, LqRef arg1 /*%s*/)" % (
                         op, "".join(arg0), "".join(arg1))
                 defns += proto + " { return _normal_two_op_instr(O%s, size_class, arg0, arg1); }\n" % op
-            decls += proto + ";\n"
+        decls += proto + ";\n"
 
     return (decls, defns)
 
