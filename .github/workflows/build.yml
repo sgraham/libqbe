@@ -1,0 +1,25 @@
+name: Test Runner
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  tests:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+    - uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: amd64
+        vsversion: 2022
+    - run: python build_amalg.py
