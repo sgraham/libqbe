@@ -588,7 +588,7 @@ void lq_data_double(double val) {
   qbe_main_data(&_curd);
 }
 
-size_t _str_repr(const char* str, char* into) {
+static size_t _str_repr(const char* str, char* into) {
   size_t at = 0;
 
 #define EMIT(x)     \
