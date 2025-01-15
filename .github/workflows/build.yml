@@ -22,4 +22,6 @@ jobs:
       with:
         arch: amd64
         vsversion: 2022
+    - run: git config user.name "Patcher"
     - run: python build_amalg.py
+    - run: git config --unset user.name
