@@ -27,6 +27,12 @@ integration of upstream QBE more straightforward.
 need build only libqbe.c (which does no `#include`s beyond the standard C
 library), and write your front end against `libqbe.h`.
 
+## Releases
+
+There's no formal versioned releases, but an amalgamated copy of `libqbe.c` and
+`libqbe.h` cut from the head of trunk [can be
+downloaded](https://github.com/sgraham/libqbe/releases/tag/nightly).
+
 ## Warning
 
 **It is quite possible that I have introduced bugs in this packaging, as the
@@ -70,7 +76,6 @@ For a slightly more involved example, see the examples in  `hello.c` and
 - unions
 - thread/tls
 - opaque types
-- github workflow to check various compilers, and build a 'release'
 
 ## Future plans
 
