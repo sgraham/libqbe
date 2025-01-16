@@ -1,5 +1,7 @@
 #include "libqbe.h"
 
+#include <string.h>
+
 void compile_if_then_else_using_memory(void) {
   lq_func_start(lq_linkage_default, lq_type_word, "conditional_using_memory");
   LqRef a = lq_func_param(lq_type_word);
@@ -106,6 +108,18 @@ void compile_passing_aggregates_by_value(void) {
   lq_func_end();
 }
 
+void compile_data_references(void) {
+  const char* strdata = "this is some text";
+  lq_data_start(lq_linkage_default, "some_string_bytes");
+  lq_data_string(strdata);
+  LqSymbol string_bytes = lq_data_end();
+
+  lq_data_start(lq_linkage_default, "some_string_obj");
+  lq_data_ref(string_bytes, 0);
+  lq_data_long(strlen(strdata));
+  lq_data_end();
+}
+
 int main(void) {
   lq_init(LQ_TARGET_AMD64_SYSV, stdout, "");
 
@@ -114,6 +128,8 @@ int main(void) {
   compile_if_then_else_using_phi();
 
   compile_passing_aggregates_by_value();
+
+  compile_data_references();
 
   lq_shutdown();
 }

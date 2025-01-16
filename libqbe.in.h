@@ -107,12 +107,11 @@ void lq_data_long(uint64_t val);
 void lq_data_string(const char* str);
 void lq_data_single(float f);
 void lq_data_double(double d);
+void lq_data_ref(LqSymbol ref, int64_t offset);
 LqSymbol lq_data_end(void);
 
 void lq_func_start(LqLinkage linkage, LqType return_type, const char* name);
 LqSymbol lq_func_end(void);
-
-void lq_func_dump_current(FILE* to);
 
 // LqRef are function local, so the return value from cannot be cached across
 // functions.

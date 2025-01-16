@@ -296,10 +296,6 @@ LqSymbol lq_func_end(void) {
   return ret;
 }
 
-void lq_func_dump_current(FILE* to) {
-  printfn(curf, to);
-}
-
 LqRef lq_ref_for_symbol(LqSymbol sym) {
   LQ_ASSERT(curf);
   Con c = {0};
@@ -617,6 +613,15 @@ void lq_data_double(double val) {
   _curd.isstr = 0;
   _curd.type = DL;
   _curd.u.fltd = val;
+  qbe_main_data(&_curd);
+}
+
+void lq_data_ref(LqSymbol ref, int64_t offset) {
+  _curd.isref = 1;
+  _curd.isstr = 0;
+  _curd.type = DL;
+  _curd.u.ref.name = str(ref.u);
+  _curd.u.ref.off = offset;
   qbe_main_data(&_curd);
 }
 
