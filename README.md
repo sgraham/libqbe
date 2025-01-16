@@ -67,19 +67,12 @@ int main(void) {
 For a slightly more involved example, see the examples in  `hello.c` and
 `more.c`.
 
-## TODO
-
-- probably get rid of callv and write N versions for checking type vs. ref
-- lq_data_ref (with offset)
-- debug info
-- hlt
-- unions
-- thread/tls
-- opaque types
-
 ## Future plans
 
-Long term than the TODOs above which are just filling out the existing API:
+TODOs (filling out API, etc.) can be found under
+[Issues](https://github.com/sgraham/libqbe/issues).
+
+Longer term/larger issues:
 
 - The output of the library is identical to the command line tool (i.e. input
   suitable for `as`. It might be nice to have libqbe emit other formats in the
