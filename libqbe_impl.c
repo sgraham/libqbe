@@ -424,19 +424,42 @@ LqRef lq_i_calla(LqType result,
   return _internal_ref_to_lqref(tmp);
 }
 
-LqRef lq_i_call_implv(bool is_varargs, int num_args, LqType result, LqRef func, ...) {
-  va_list ap;
-  va_start(ap, func);
+LqRef lq_i_call_impl_fwd_0(bool is_varargs, LqType result, LqRef func) {
+  return lq_i_calla(result, func, is_varargs, 0, NULL, NULL);
+}
 
-  LQ_ASSERT(num_args < 16);
-  LqType* types = alloca(sizeof(LqType) * num_args);
-  LqRef* args = alloca(sizeof(LqRef) * num_args);
-  for (int i = 0; i < num_args; ++i) {
-    types[i] = va_arg(ap, LqType);
-    args[i] = va_arg(ap, LqRef);
-  }
-  va_end(ap);
-  return lq_i_calla(result, func, is_varargs, num_args, types, args);
+LqRef lq_i_call_impl_fwd_1(bool is_varargs, LqType result, LqRef func, LqType t0, LqRef v0) {
+  return lq_i_calla(result, func, is_varargs, 1, &t0, &v0);
+}
+
+LqRef lq_i_call_impl_fwd_2(bool is_varargs, LqType result, LqRef func, LqType t0, LqRef v0, LqType t1, LqRef v1) {
+  LqType types[2] = {t0, t1};
+  LqRef vals[2] = {v0, v1};
+  return lq_i_calla(result, func, is_varargs, 2, types, vals);
+}
+
+LqRef lq_i_call_impl_fwd_3(bool is_varargs, LqType result, LqRef func, LqType t0, LqRef v0, LqType t1, LqRef v1, LqType t2, LqRef v2) {
+  LqType types[3] = {t0, t1, t2};
+  LqRef vals[3] = {v0, v1, v2};
+  return lq_i_calla(result, func, is_varargs, 3, types, vals);
+}
+
+LqRef lq_i_call_impl_fwd_4(bool is_varargs, LqType result, LqRef func, LqType t0, LqRef v0, LqType t1, LqRef v1, LqType t2, LqRef v2, LqType t3, LqRef v3) {
+  LqType types[4] = {t0, t1, t2, t3};
+  LqRef vals[4] = {v0, v1, v2, v3};
+  return lq_i_calla(result, func, is_varargs, 4, types, vals);
+}
+
+LqRef lq_i_call_impl_fwd_5(bool is_varargs, LqType result, LqRef func, LqType t0, LqRef v0, LqType t1, LqRef v1, LqType t2, LqRef v2, LqType t3, LqRef v3, LqType t4, LqRef v4) {
+  LqType types[5] = {t0, t1, t2, t3, t4};
+  LqRef vals[5] = {v0, v1, v2, v3, v4};
+  return lq_i_calla(result, func, is_varargs, 5, types, vals);
+}
+
+LqRef lq_i_call_impl_fwd_6(bool is_varargs, LqType result, LqRef func, LqType t0, LqRef v0, LqType t1, LqRef v1, LqType t2, LqRef v2, LqType t3, LqRef v3, LqType t4, LqRef v4, LqType t5, LqRef v5) {
+  LqType types[6] = {t0, t1, t2, t3, t4, t5};
+  LqRef vals[6] = {v0, v1, v2, v3, v4, v5};
+  return lq_i_calla(result, func, is_varargs, 6, types, vals);
 }
 
 void lq_i_jmp(LqBlock block) {

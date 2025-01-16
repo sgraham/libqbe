@@ -146,7 +146,16 @@ LqRef lq_i_calla(LqType result,
                  LqType* types,
                  LqRef* args);
 
-LqRef lq_i_call_implv(bool is_varargs, int num_args, LqType result, LqRef func, ...);
+// A ... was nicer to implement, but too easy to confuse LqSymbol and LqRef (or
+// even forget LqType and pass two LqRefs) and get strange errors, so just
+// expand manually for somewhat better typechecking.
+LqRef lq_i_call_impl_fwd_0(bool is_varargs, LqType result, LqRef func);
+LqRef lq_i_call_impl_fwd_1(bool is_varargs, LqType result, LqRef func, LqType t0, LqRef v0);
+LqRef lq_i_call_impl_fwd_2(bool is_varargs, LqType result, LqRef func, LqType t0, LqRef v0, LqType t1, LqRef v1);
+LqRef lq_i_call_impl_fwd_3(bool is_varargs, LqType result, LqRef func, LqType t0, LqRef v0, LqType t1, LqRef v1, LqType t2, LqRef v2);
+LqRef lq_i_call_impl_fwd_4(bool is_varargs, LqType result, LqRef func, LqType t0, LqRef v0, LqType t1, LqRef v1, LqType t2, LqRef v2, LqType t3, LqRef v3);
+LqRef lq_i_call_impl_fwd_5(bool is_varargs, LqType result, LqRef func, LqType t0, LqRef v0, LqType t1, LqRef v1, LqType t2, LqRef v2, LqType t3, LqRef v3, LqType t4, LqRef v4);
+LqRef lq_i_call_impl_fwd_6(bool is_varargs, LqType result, LqRef func, LqType t0, LqRef v0, LqType t1, LqRef v1, LqType t2, LqRef v2, LqType t3, LqRef v3, LqType t4, LqRef v4, LqType t5, LqRef v5);
 
 #define LQ_EXPAND(x) x
 #define LQ___NARGS(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, VAL, ...) VAL
@@ -157,6 +166,8 @@ LqRef lq_i_call_implv(bool is_varargs, int num_args, LqType result, LqRef func, 
                        ERROR_UNPAIRED_TYPE_AND_REF, 0, ERROR_UNPAIRED_TYPE_AND_REF))
 #define LQ_AUGMENTER(...) unused, __VA_ARGS__
 #define LQ_NARGS(...) LQ_NARGS_1(LQ_AUGMENTER(__VA_ARGS__))
+#define LQ_JOIN_(a, b) a##b
+#define LQ_JOIN(a, b) LQ_JOIN_(a, b)
 
 // This is just a helper, so you can write:
 //
@@ -173,10 +184,10 @@ LqRef lq_i_call_implv(bool is_varargs, int num_args, LqType result, LqRef func, 
 // arrays from the front end anyway, but sometimes directly passing the
 // arguments is convenient.
 #define lq_i_call(result_type, ...) \
-  lq_i_call_implv(/*va=*/false, LQ_NARGS(__VA_ARGS__), result_type, __VA_ARGS__)
+  LQ_JOIN(lq_i_call_impl_fwd_, LQ_NARGS(__VA_ARGS__))(/*va=*/false, result_type, __VA_ARGS__)
 
 #define lq_i_call_varargs(result_type, ...) \
-  lq_i_call_implv(/*va=*/true, LQ_NARGS(__VA_ARGS__), result_type, __VA_ARGS__)
+  LQ_JOIN(lq_i_call_impl_fwd_, LQ_NARGS(__VA_ARGS__))(/*va=*/true, result_type, __VA_ARGS__)
 
 %%%INSTRUCTION_DECLARATIONS%%%
 
