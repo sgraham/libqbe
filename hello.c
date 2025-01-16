@@ -51,14 +51,15 @@ void compile(void) {
   LqSymbol fmt = lq_data_end();
 
   lq_func_start(lq_linkage_export, lq_type_word, "main");  // Main function.
-  LqRef r = lq_i_call(lq_type_word, lq_ref_for_symbol(add_func),
-                      lq_type_word, lq_const_int(1),
-                      lq_type_word, lq_const_int(1));      // Call add(1, 1).
+  LqRef r = lq_i_call2(lq_type_word, lq_ref_for_symbol(add_func),
+                       (LqCallArg){lq_type_word, lq_const_int(1)},
+                       (LqCallArg){lq_type_word, lq_const_int(1)});  // Call add(1, 1).
 
   LqRef printf_func = lq_extern("printf");
-  lq_i_call_varargs(lq_type_word, printf_func,
-                    lq_type_long, lq_ref_for_symbol(fmt),
-                    lq_type_word, r);  // Show the result with printf.
+  lq_i_call3(lq_type_word, printf_func,
+             (LqCallArg){lq_type_long, lq_ref_for_symbol(fmt)},
+             lq_varargs_begin,
+             (LqCallArg){lq_type_word, r});  // Show the result with printf.
 
   lq_i_ret(lq_const_int(0));
   lq_func_end();

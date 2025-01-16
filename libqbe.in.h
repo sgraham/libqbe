@@ -139,55 +139,25 @@ void lq_i_jnz(LqRef cond, LqBlock if_true, LqBlock if_false);
 // TODO: only 2-branch phi supported currently
 LqRef lq_i_phi(LqType size_class, LqBlock block0, LqRef val0, LqBlock block1, LqRef val1);
 
+typedef struct LqCallArg {
+  LqType type;
+  LqRef value;
+} LqCallArg;
+
+#define lq_varargs_begin (LqCallArg){lq_type_void, (LqRef){0}}
+
 LqRef lq_i_calla(LqType result,
                  LqRef func,
-                 bool is_varargs,
                  int num_args,
-                 LqType* types,
-                 LqRef* args);
+                 LqCallArg* cas);
 
-// A ... was nicer to implement, but too easy to confuse LqSymbol and LqRef (or
-// even forget LqType and pass two LqRefs) and get strange errors, so just
-// expand manually for somewhat better typechecking.
-LqRef lq_i_call_impl_fwd_0(bool is_varargs, LqType result, LqRef func);
-LqRef lq_i_call_impl_fwd_1(bool is_varargs, LqType result, LqRef func, LqType t0, LqRef v0);
-LqRef lq_i_call_impl_fwd_2(bool is_varargs, LqType result, LqRef func, LqType t0, LqRef v0, LqType t1, LqRef v1);
-LqRef lq_i_call_impl_fwd_3(bool is_varargs, LqType result, LqRef func, LqType t0, LqRef v0, LqType t1, LqRef v1, LqType t2, LqRef v2);
-LqRef lq_i_call_impl_fwd_4(bool is_varargs, LqType result, LqRef func, LqType t0, LqRef v0, LqType t1, LqRef v1, LqType t2, LqRef v2, LqType t3, LqRef v3);
-LqRef lq_i_call_impl_fwd_5(bool is_varargs, LqType result, LqRef func, LqType t0, LqRef v0, LqType t1, LqRef v1, LqType t2, LqRef v2, LqType t3, LqRef v3, LqType t4, LqRef v4);
-LqRef lq_i_call_impl_fwd_6(bool is_varargs, LqType result, LqRef func, LqType t0, LqRef v0, LqType t1, LqRef v1, LqType t2, LqRef v2, LqType t3, LqRef v3, LqType t4, LqRef v4, LqType t5, LqRef v5);
-
-#define LQ_EXPAND(x) x
-#define LQ___NARGS(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, VAL, ...) VAL
-#define LQ_NARGS_1(...)                                                                \
-  LQ_EXPAND(LQ___NARGS(__VA_ARGS__, 6, ERROR_UNPAIRED_TYPE_AND_REF, 5,                 \
-                       ERROR_UNPAIRED_TYPE_AND_REF, 4, ERROR_UNPAIRED_TYPE_AND_REF, 3, \
-                       ERROR_UNPAIRED_TYPE_AND_REF, 2, ERROR_UNPAIRED_TYPE_AND_REF, 1, \
-                       ERROR_UNPAIRED_TYPE_AND_REF, 0, ERROR_UNPAIRED_TYPE_AND_REF))
-#define LQ_AUGMENTER(...) unused, __VA_ARGS__
-#define LQ_NARGS(...) LQ_NARGS_1(LQ_AUGMENTER(__VA_ARGS__))
-#define LQ_JOIN_(a, b) a##b
-#define LQ_JOIN(a, b) LQ_JOIN_(a, b)
-
-// This is just a helper, so you can write:
-//
-//   lq_i_call(result, func, type0, arg0)
-//
-// or
-//
-//   lq_i_call(result, func, type0, arg0, type1, arg1, type2, arg2)
-//
-// etc. It will compile to a non-existent function if you list a mismatched pair
-// of type/args.
-//
-// Normally, you'll probably want to use lq_i_acall() to pass explicitly built
-// arrays from the front end anyway, but sometimes directly passing the
-// arguments is convenient.
-#define lq_i_call(result_type, ...) \
-  LQ_JOIN(lq_i_call_impl_fwd_, LQ_NARGS(__VA_ARGS__))(/*va=*/false, result_type, __VA_ARGS__)
-
-#define lq_i_call_varargs(result_type, ...) \
-  LQ_JOIN(lq_i_call_impl_fwd_, LQ_NARGS(__VA_ARGS__))(/*va=*/true, result_type, __VA_ARGS__)
+LqRef lq_i_call0(LqType result, LqRef func);
+LqRef lq_i_call1(LqType result, LqRef func, LqCallArg ca0);
+LqRef lq_i_call2(LqType result, LqRef func, LqCallArg ca0, LqCallArg ca1);
+LqRef lq_i_call3(LqType result, LqRef func, LqCallArg ca0, LqCallArg ca1, LqCallArg ca2);
+LqRef lq_i_call4(LqType result, LqRef func, LqCallArg ca0, LqCallArg ca1, LqCallArg ca2, LqCallArg ca3);
+LqRef lq_i_call5(LqType result, LqRef func, LqCallArg ca0, LqCallArg ca1, LqCallArg ca2, LqCallArg ca3, LqCallArg ca4);
+LqRef lq_i_call6(LqType result, LqRef func, LqCallArg ca0, LqCallArg ca1, LqCallArg ca2, LqCallArg ca3, LqCallArg ca4, LqCallArg ca5);
 
 %%%INSTRUCTION_DECLARATIONS%%%
 
