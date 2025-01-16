@@ -64,8 +64,9 @@ int main(void) {
 }
 ```
 
-For a slightly more involved example, see the examples in  `hello.c` and
-`more.c`.
+For slightly more involved examples, see
+[`hello.c`](https://github.com/sgraham/libqbe/blob/trunk/hello.c) and
+[`more.c`](https://github.com/sgraham/libqbe/blob/trunk/more.c).
 
 ## Future plans
 
